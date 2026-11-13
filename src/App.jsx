@@ -3,15 +3,14 @@ import { Stage, Layer, Rect, Text, Image as KonvaImage, Transformer } from 'reac
 import { createClient } from '@supabase/supabase-js';
 
 // ==========================================
-// ТВОИ КЛЮЧИ SUPABASE
+// ТВОИ КЛЮЧИ
 // ==========================================
 const SUPABASE_URL = 'https://iqvujenjffevijvtdvd.supabase.co'; 
-const SUPABASE_ANON_KEY = 'sb_publishable_Cbcd0LznpbNCIA6JwOskig_4SkcqVhL'; 
+const SUPABASE_ANON_KEY = 'sb_publishable_Cbcd0LznpbNCIA6JwOskig_4SkcqVhL';
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 // ==========================================
 
-// Компонент картинки (с возможностью менять размер)
 const URLImage = ({ image, isSelected, onSelect, onChange, ...props }) => {
   const shapeRef = useRef();
   const trRef = useRef();
@@ -73,7 +72,6 @@ function App() {
   const stageRef = useRef(null);
   const fileInputRef = useRef(null);
 
-  // 1. Проверяем, вошел ли пользователь при загрузке
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
       setUser(session?.user ?? null);
@@ -89,14 +87,12 @@ function App() {
     return () => authListener.subscription.unsubscribe();
   }, []);
 
-  // 2. Загрузка проекта из базы
   const loadProject = async (userId) => {
     const { data } = await supabase.from('projects').select('data').eq('user_id', userId).single();
     if (data && data.data) setElements(data.data);
     setIsLoading(false);
   };
 
-  // 3. Сохранение проекта в базу (с задержкой 1.5 секунды, чтобы не спамить запросами)
   useEffect(() => {
     if (!user || isLoading) return;
     const saveTimeout = setTimeout(async () => {
@@ -109,7 +105,6 @@ function App() {
     return () => clearTimeout(saveTimeout);
   }, [elements, user, isLoading]);
 
-  // Вход по Email (отправка Magic Link)
   const handleLogin = async (e) => {
     e.preventDefault();
     const { error } = await supabase.auth.signInWithOtp({ email });
@@ -189,7 +184,6 @@ function App() {
 
   const selectedElement = elements.find(el => el.id === selectedId);
 
-  // ЭКРАН ВХОДА (если не авторизован)
   if (!user) {
     return (
       <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh', backgroundColor: '#121212', color: 'white', flexDirection: 'column' }}>
@@ -212,12 +206,10 @@ function App() {
     );
   }
 
-  // ЭКРАН РЕДАКТОРА (если авторизован)
   return (
     <div style={{ display: 'flex', width: '100vw', height: '100vh', backgroundColor: '#121212' }}>
       <input type="file" accept="image/*" ref={fileInputRef} onChange={handleImageUpload} style={{ display: 'none' }} />
 
-      {/* ЛЕВАЯ ПАНЕЛЬ */}
       <div style={{ width: '80px', backgroundColor: '#1e1e1e', display: 'flex', flexDirection: 'column', alignItems: 'center', paddingTop: '20px', gap: '15px', zIndex: 10 }}>
         <button onClick={addSquare} style={{ fontSize: '24px', background: 'transparent', border: 'none', color: 'white', cursor: 'pointer' }}>⬛</button>
         <button onClick={addText} style={{ fontSize: '24px', background: 'transparent', border: 'none', color: 'white', cursor: 'pointer' }}>T</button>
@@ -230,7 +222,6 @@ function App() {
         <button onClick={deleteSelected} disabled={!selectedId} style={{ fontSize: '20px', background: 'transparent', border: 'none', color: selectedId ? '#ff4444' : '#555' }}>🗑️</button>
       </div>
 
-      {/* ХОЛСТ */}
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', backgroundColor: '#2c2c2c', position: 'relative' }}>
         
         {selectedElement && selectedElement.type === 'text' && (
