@@ -3,7 +3,7 @@ import { Stage, Layer, Rect, Text, Image as KonvaImage, Transformer } from 'reac
 import { createClient } from '@supabase/supabase-js';
 
 // ==========================================
-// ТВОИ КЛЮЧИ
+// ТВОИ КЛЮЧИ ИЗ SUPABASE
 // ==========================================
 const SUPABASE_URL = 'https://iqvujenjffevijvtdvd.supabase.co'; 
 const SUPABASE_ANON_KEY = 'sb_publishable_Cbcd0LznpbNCIA6JwOskig_4SkcqVhL';
@@ -67,9 +67,9 @@ function App() {
   const [selectedId, setSelectedId] = useState(null);
   const [user, setUser] = useState(null);
   
-  // Состояния для формы входа
-  const [email, setEmail] = useState('test@test.com'); // Уже вписан твой тестовый email
-  const [password, setPassword] = useState('Rosa1924'); // И пароль
+  // Данные для входа
+  const [email, setEmail] = useState('test@test.com'); 
+  const [password, setPassword] = useState('Rosa1924'); 
   const [isLoading, setIsLoading] = useState(true);
   
   const stageRef = useRef(null);
@@ -187,7 +187,7 @@ function App() {
 
   const selectedElement = elements.find(el => el.id === selectedId);
 
-  // ЭКРАН ВХОДА (с полями email и пароля)
+  // ЭКРАН ВХОДА
   if (!user) {
     return (
       <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh', backgroundColor: '#121212', color: 'white', flexDirection: 'column' }}>
@@ -278,4 +278,5 @@ function App() {
     </div>
   );
 }
+
 export default App;
