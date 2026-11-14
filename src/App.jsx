@@ -2,10 +2,14 @@ import React, { useState, useRef, useEffect } from 'react';
 import { Stage, Layer, Rect, Text, Image as KonvaImage, Transformer } from 'react-konva';
 import { createClient } from '@supabase/supabase-js';
 
+// ==========================================
+// ТВОИ КЛЮЧИ
+// ==========================================
 const SUPABASE_URL = 'https://iqvujenjffevijvtdvd.supabase.co'; 
 const SUPABASE_ANON_KEY = 'sb_publishable_Cbcd0LznpbNCIA6JwOskig_4SkcqVhL';
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+// ==========================================
 
 const URLImage = ({ image, isSelected, onSelect, onChange, ...props }) => {
   const shapeRef = useRef();
@@ -62,7 +66,10 @@ function App() {
   const [elements, setElements] = useState([]);
   const [selectedId, setSelectedId] = useState(null);
   const [user, setUser] = useState(null);
-  const [email, setEmail] = useState('');
+  
+  // Состояния для формы входа
+  const [email, setEmail] = useState('test@test.com'); // Уже вписан твой тестовый email
+  const [password, setPassword] = useState('Rosa1924'); // И пароль
   const [isLoading, setIsLoading] = useState(true);
   
   const stageRef = useRef(null);
@@ -101,11 +108,11 @@ function App() {
     return () => clearTimeout(saveTimeout);
   }, [elements, user, isLoading]);
 
+  // ВХОД ПО ПАРОЛЮ
   const handleLogin = async (e) => {
     e.preventDefault();
-    const { error } = await supabase.auth.signInWithOtp({ email });
-    if (error) alert(error.message);
-    else alert('Проверьте почту! Мы отправили ссылку для входа.');
+    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    if (error) alert("Ошибка входа: " + error.message);
   };
 
   const handleLogout = async () => {
@@ -180,6 +187,7 @@ function App() {
 
   const selectedElement = elements.find(el => el.id === selectedId);
 
+  // ЭКРАН ВХОДА (с полями email и пароля)
   if (!user) {
     return (
       <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh', backgroundColor: '#121212', color: 'white', flexDirection: 'column' }}>
@@ -193,11 +201,18 @@ function App() {
             required 
             style={{ padding: '10px', borderRadius: '5px', border: 'none' }}
           />
+          <input 
+            type="password" 
+            placeholder="Пароль" 
+            value={password} 
+            onChange={(e) => setPassword(e.target.value)} 
+            required 
+            style={{ padding: '10px', borderRadius: '5px', border: 'none' }}
+          />
           <button type="submit" style={{ padding: '10px', backgroundColor: '#7B61FF', color: 'white', border: 'none', borderRadius: '5px', cursor: 'pointer', fontWeight: 'bold' }}>
-            Войти по ссылке
+            Войти
           </button>
         </form>
-        <p style={{ fontSize: '12px', color: '#888', marginTop: '20px' }}>Мы отправим ссылку для входа на вашу почту</p>
       </div>
     );
   }
@@ -263,5 +278,3 @@ function App() {
     </div>
   );
 }
-
-export default App;
