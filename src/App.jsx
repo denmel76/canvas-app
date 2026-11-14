@@ -53,27 +53,26 @@ const URLImage = ({ image, isSelected, onSelect, onChange, ...props }) => {
 };
 
 function App() {
-  // Загружаем из памяти браузера при старте
   const [elements, setElements] = useState(() => {
     const saved = localStorage.getItem('my-canvas-project');
     return saved ? JSON.parse(saved) : [];
   });
   
   const [selectedId, setSelectedId] = useState(null);
+  const [bgColor, setBgColor] = useState('#ffffff'); // Цвет фона
   const stageRef = useRef(null);
   const fileInputRef = useRef(null);
 
-  // Автосохранение в память браузера при любом изменении
   useEffect(() => {
     localStorage.setItem('my-canvas-project', JSON.stringify(elements));
   }, [elements]);
 
   const addSquare = () => {
-    setElements([...elements, { id: Date.now().toString(), type: 'rect', x: 100, y: 100, width: 150, height: 150, fill: '#' + Math.floor(Math.random()*16777215).toString(16) }]);
+    setElements([...elements, { id: Date.now().toString(), type: 'rect', x: 100, y: 100, width: 150, height: 150, fill: '#FFD700' }]);
   };
 
   const addText = () => {
-    setElements([...elements, { id: Date.now().toString(), type: 'text', x: 100, y: 100, text: 'Напиши здесь', fontSize: 30, fill: '#000000' }]);
+    setElements([...elements, { id: Date.now().toString(), type: 'text', x: 100, y: 100, text: 'Новый текст', fontSize: 30, fill: '#000000' }]);
   };
 
   const handleImageUpload = (e) => {
@@ -96,12 +95,6 @@ function App() {
       setElements(elements.filter(el => el.id !== selectedId));
       setSelectedId(null);
     }
-  };
-
-  const changeColor = () => {
-    if (!selectedId) return;
-    const newColor = '#' + Math.floor(Math.random()*16777215).toString(16);
-    setElements(elements.map(el => el.id === selectedId ? { ...el, fill: newColor } : el));
   };
 
   const moveLayer = (direction) => {
@@ -135,6 +128,11 @@ function App() {
 
   const selectedElement = elements.find(el => el.id === selectedId);
 
+  // Обновление свойств выбранного элемента
+  const updateSelected = (key, value) => {
+    setElements(elements.map(el => el.id === selectedId ? { ...el, [key]: value } : el));
+  };
+
   return (
     <div style={{ display: 'flex', width: '100vw', height: '100vh', backgroundColor: '#121212' }}>
       <input type="file" accept="image/*" ref={fileInputRef} onChange={handleImageUpload} style={{ display: 'none' }} />
@@ -148,21 +146,44 @@ function App() {
         <button onClick={() => moveLayer('up')} disabled={!selectedId} style={{ fontSize: '20px', background: 'transparent', border: 'none', color: selectedId ? 'white' : '#555' }}>⬆️</button>
         <button onClick={() => moveLayer('down')} disabled={!selectedId} style={{ fontSize: '20px', background: 'transparent', border: 'none', color: selectedId ? 'white' : '#555' }}>⬇️</button>
         <div style={{ height: '1px', width: '60%', backgroundColor: '#444', margin: '10px 0' }}></div>
-        <button onClick={changeColor} disabled={!selectedId} style={{ fontSize: '20px', background: 'transparent', border: 'none', color: selectedId ? '#FFD700' : '#555' }}>🎨</button>
         <button onClick={deleteSelected} disabled={!selectedId} style={{ fontSize: '20px', background: 'transparent', border: 'none', color: selectedId ? '#ff4444' : '#555' }}>🗑️</button>
       </div>
 
       {/* ХОЛСТ */}
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', backgroundColor: '#2c2c2c', position: 'relative' }}>
         
-        {selectedElement && selectedElement.type === 'text' && (
-          <div style={{ position: 'absolute', top: '80px', right: '20px', width: '250px', backgroundColor: '#1e1e1e', padding: '20px', borderRadius: '10px', color: 'white', display: 'flex', flexDirection: 'column', gap: '15px', boxShadow: '0 4px 15px rgba(0,0,0,0.5)' }}>
-            <h3 style={{ margin: 0, fontSize: '16px' }}>Настройки текста</h3>
-            <input type="text" value={selectedElement.text} onChange={(e) => setElements(elements.map(el => el.id === selectedId ? { ...el, text: e.target.value } : el))} style={{ padding: '8px', borderRadius: '5px', border: 'none', backgroundColor: '#333', color: 'white' }} />
-            <label style={{ fontSize: '14px', color: '#aaa' }}>Размер: {selectedElement.fontSize}px</label>
-            <input type="range" min="12" max="100" value={selectedElement.fontSize} onChange={(e) => setElements(elements.map(el => el.id === selectedId ? { ...el, fontSize: parseInt(e.target.value) } : el))} style={{ cursor: 'pointer' }} />
-          </div>
-        )}
+        {/* ПАНЕЛЬ НАСТРОЕК СПРАВА */}
+        <div style={{ position: 'absolute', top: '80px', right: '20px', width: '250px', backgroundColor: '#1e1e1e', padding: '20px', borderRadius: '10px', color: 'white', display: 'flex', flexDirection: 'column', gap: '15px', boxShadow: '0 4px 15px rgba(0,0,0,0.5)' }}>
+          
+          {/* Если ничего не выбрано - меняем фон */}
+          {!selectedId && (
+            <>
+              <h3 style={{ margin: 0, fontSize: '16px' }}>Фон холста</h3>
+              <input type="color" value={bgColor} onChange={(e) => setBgColor(e.target.value)} style={{ cursor: 'pointer', height: '40px', width: '100%' }} />
+            </>
+          )}
+
+          {/* Если выбран текст - настройки текста */}
+          {selectedElement && selectedElement.type === 'text' && (
+            <>
+              <h3 style={{ margin: 0, fontSize: '16px' }}>Настройки текста</h3>
+              <input type="text" value={selectedElement.text} onChange={(e) => updateSelected('text', e.target.value)} style={{ padding: '8px', borderRadius: '5px', border: 'none', backgroundColor: '#333', color: 'white' }} />
+              <label style={{ fontSize: '14px', color: '#aaa' }}>Размер: {selectedElement.fontSize}px</label>
+              <input type="range" min="12" max="100" value={selectedElement.fontSize} onChange={(e) => updateSelected('fontSize', parseInt(e.target.value))} style={{ cursor: 'pointer' }} />
+              <label style={{ fontSize: '14px', color: '#aaa' }}>Цвет:</label>
+              <input type="color" value={selectedElement.fill} onChange={(e) => updateSelected('fill', e.target.value)} style={{ cursor: 'pointer', height: '40px', width: '100%' }} />
+            </>
+          )}
+
+          {/* Если выбрана фигура или картинка - меняем цвет (для фигур) */}
+          {selectedElement && (selectedElement.type === 'rect' || selectedElement.type === 'image') && (
+            <>
+              <h3 style={{ margin: 0, fontSize: '16px' }}>Цвет элемента</h3>
+              <input type="color" value={selectedElement.fill || '#000000'} onChange={(e) => updateSelected('fill', e.target.value)} style={{ cursor: 'pointer', height: '40px', width: '100%' }} />
+              <p style={{ fontSize: '12px', color: '#888' }}>*Цвет меняется только у фигур</p>
+            </>
+          )}
+        </div>
 
         <div style={{ width: '100%', height: '60px', backgroundColor: '#1e1e1e', display: 'flex', justifyContent: 'flex-end', alignItems: 'center', padding: '0 20px', boxSizing: 'border-box' }}>
           <button onClick={downloadImage} style={{ padding: '10px 20px', fontSize: '16px', backgroundColor: '#7B61FF', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold' }}>
@@ -172,7 +193,7 @@ function App() {
 
         <div style={{ flex: 1, display: 'flex', justifyContent: 'center', alignItems: 'center', overflow: 'hidden' }}>
           <div style={{ boxShadow: '0 0 20px rgba(0,0,0,0.5)' }}>
-            <Stage width={600} height={800} onMouseDown={checkDeselect} onTouchStart={checkDeselect} style={{ backgroundColor: 'white' }} ref={stageRef}>
+            <Stage width={600} height={800} onMouseDown={checkDeselect} onTouchStart={checkDeselect} style={{ backgroundColor: bgColor }} ref={stageRef}>
               <Layer>
                 {elements.map((el) => {
                   const isSelected = el.id === selectedId;
