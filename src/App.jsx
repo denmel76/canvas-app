@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Stage, Layer, Rect, Text, Image as KonvaImage, Transformer } from 'react-konva';
 
-// Компонент картинки
+// --- КОМПОНЕНТ ДЛЯ КАРТИНОК ---
 const URLImage = ({ image, isSelected, onSelect, onChange, ...props }) => {
   const shapeRef = useRef();
   const trRef = useRef();
@@ -35,7 +35,7 @@ const URLImage = ({ image, isSelected, onSelect, onChange, ...props }) => {
   );
 };
 
-// --- РЕДАКТОР ---
+// --- РЕДАКТОР (ХОЛСТ) ---
 function Editor({ onBack }) {
   const [elements, setElements] = useState([]);
   const [selectedId, setSelectedId] = useState(null);
@@ -73,14 +73,10 @@ function Editor({ onBack }) {
 
   const selectedElement = elements.find(el => el.id === selectedId);
   const updateSelected = (key, value) => setElements(elements.map(el => el.id === selectedId ? { ...el, [key]: value } : el));
-
-  // Проверяем, тач-устройство ли это (для адаптации интерфейса)
   const isTouchDevice = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', width: '100vw', height: '100vh', backgroundColor: '#f0f0f0', overflow: 'hidden' }}>
-      
-      {/* ВЕРХНЯЯ ПАНЕЛЬ */}
       <div style={{ height: '60px', backgroundColor: 'white', display: 'flex', alignItems: 'center', padding: '0 20px', borderBottom: '1px solid #ddd', zIndex: 10 }}>
         <button onClick={onBack} style={{ background: 'transparent', border: 'none', fontSize: '16px', cursor: 'pointer', fontWeight: 'bold' }}>← Назад</button>
         <div style={{ flex: 1 }}></div>
@@ -88,24 +84,15 @@ function Editor({ onBack }) {
       </div>
 
       <div style={{ display: 'flex', flex: 1, overflow: 'hidden' }}>
-        
-        {/* ЛЕВАЯ ПАНЕЛЬ ИНСТРУМЕНТОВ */}
         <div style={{ width: '70px', backgroundColor: 'white', display: 'flex', flexDirection: 'column', alignItems: 'center', paddingTop: '20px', gap: '20px', borderRight: '1px solid #ddd', zIndex: 10 }}>
           <button onClick={addSquare} style={{ fontSize: '24px', background: 'transparent', border: 'none' }}>⬛</button>
           <button onClick={addText} style={{ fontSize: '24px', background: 'transparent', border: 'none' }}>T</button>
           <button onClick={() => fileInputRef.current.click()} style={{ fontSize: '24px', background: 'transparent', border: 'none' }}>🖼️</button>
         </div>
 
-        {/* ХОЛСТ (С возможностью скролла на iPad) */}
         <div style={{ flex: 1, display: 'flex', justifyContent: 'center', alignItems: 'center', overflow: 'auto', padding: '20px' }}>
           <div style={{ boxShadow: '0 4px 20px rgba(0,0,0,0.2)', flexShrink: 0 }}>
-            <Stage 
-              width={600} height={800} 
-              onMouseDown={(e) => { if(e.target === e.target.getStage()) setSelectedId(null) }} 
-              onTouchStart={(e) => { if(e.target === e.target.getStage()) setSelectedId(null) }} // ВАЖНО ДЛЯ IPAD
-              style={{ backgroundColor: bgColor }} 
-              ref={stageRef}
-            >
+            <Stage width={600} height={800} onMouseDown={(e) => { if(e.target === e.target.getStage()) setSelectedId(null) }} onTouchStart={(e) => { if(e.target === e.target.getStage()) setSelectedId(null) }} style={{ backgroundColor: bgColor }} ref={stageRef}>
               <Layer>
                 {elements.map((el) => {
                   const isSelected = el.id === selectedId;
@@ -125,7 +112,7 @@ function Editor({ onBack }) {
           </div>
         </div>
 
-        {/* ПРАВАЯ ПАНЕЛЬ СВОЙСТВ (Скрываем на мобильных, показываем только на ПК) */}
+        {/* ПАНЕЛЬ СВОЙСТВ ДЛЯ ПК */}
         {!isTouchDevice && (
           <div style={{ width: '250px', backgroundColor: 'white', padding: '20px', borderLeft: '1px solid #ddd', display: 'flex', flexDirection: 'column', gap: '15px' }}>
             <h3 style={{ margin: 0, fontSize: '16px' }}>Свойства</h3>
@@ -147,14 +134,13 @@ function Editor({ onBack }) {
         )}
       </div>
 
-      {/* ПАНЕЛЬ СВОЙСТВ СНИЗУ (Для iPad) - Появляется только когда выбран элемент */}
+      {/* ПАНЕЛЬ СВОЙСТВ ДЛЯ IPAD (СНИЗУ) */}
       {isTouchDevice && selectedId && (
         <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, backgroundColor: 'white', padding: '15px', borderTop: '1px solid #ddd', display: 'flex', flexDirection: 'column', gap: '10px', zIndex: 100, boxShadow: '0 -4px 10px rgba(0,0,0,0.1)' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <span style={{ fontWeight: 'bold' }}>Настройки</span>
             <button onClick={deleteSelected} style={{ backgroundColor: '#ff4444', color: 'white', border: 'none', padding: '5px 15px', borderRadius: '5px' }}>Удалить</button>
           </div>
-          
           {selectedElement && selectedElement.type === 'text' && (
             <>
               <input type="text" value={selectedElement.text} onChange={(e) => updateSelected('text', e.target.value)} style={{ padding: '10px', border: '1px solid #ddd', borderRadius: '5px', width: '100%', boxSizing: 'border-box' }} />
@@ -167,7 +153,6 @@ function Editor({ onBack }) {
               </div>
             </>
           )}
-
           {(selectedElement && selectedElement.type === 'rect') && (
              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                <span>Цвет:</span>
@@ -176,14 +161,12 @@ function Editor({ onBack }) {
           )}
         </div>
       )}
-
       <input type="file" accept="image/*" ref={fileInputRef} onChange={handleImageUpload} style={{ display: 'none' }} />
     </div>
   );
 }
 
-
-// --- ГЛАВНЫЙ КОМПОНЕНТ (ДАШБОРД) ---
+// --- ДАШБОРД (ГЛАВНЫЙ ЭКРАН) ---
 export default function App() {
   const [view, setView] = useState('dashboard');
   const [activeTab, setActiveTab] = useState('Фото');
@@ -194,11 +177,28 @@ export default function App() {
     return <Editor onBack={() => setView('dashboard')} />;
   }
 
+  // Стили для розовых иконок (как на твоем референсе)
+  const iconStyle = { 
+    width: '60px', 
+    height: '60px', 
+    backgroundColor: 'white', 
+    borderRadius: '15px', 
+    boxShadow: '0 2px 10px rgba(0,0,0,0.05)', 
+    display: 'flex', 
+    justifyContent: 'center', 
+    alignItems: 'center', 
+    fontSize: '28px', 
+    marginBottom: '10px',
+    color: '#d900a8', // Розовый цвет для иконок
+    fontWeight: 'bold'
+  };
+
   return (
     <div style={{ fontFamily: 'sans-serif', backgroundColor: '#f9f9f9', minHeight: '100vh', paddingBottom: '100px', color: '#111' }}>
       
       <header style={{ padding: '20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <h1 style={{ fontSize: '28px', fontWeight: 'bold', margin: 0 }}>Редактор</h1>
+        {/* Исправлен цвет и размер заголовка */}
+        <h1 style={{ fontSize: '28px', fontWeight: 'bold', margin: 0, color: '#111' }}>Редактор</h1>
         <button onClick={() => showAlert('PRO подписка')} style={{ border: '1px solid #ddd', background: 'white', padding: '8px 16px', borderRadius: '20px', cursor: 'pointer', fontWeight: 'bold' }}>Try PRO</button>
       </header>
 
@@ -210,11 +210,13 @@ export default function App() {
         ))}
       </div>
 
+      {/* ИНСТРУМЕНТЫ (Стилизованные под референс) */}
       <div style={{ padding: '0 20px', display: 'flex', gap: '15px', marginBottom: '30px', overflowX: 'auto' }}>
          {['Убрать фон', 'Добавить т...', 'Удаление', 'ИИ Улучшить', 'Коллаж', 'Эффекты'].map((tool, i) => (
            <div key={i} onClick={() => showAlert(tool)} style={{ minWidth: '70px', textAlign: 'center', cursor: 'pointer' }}>
-             <div style={{ width: '70px', height: '70px', backgroundColor: 'white', borderRadius: '15px', boxShadow: '0 2px 10px rgba(0,0,0,0.05)', display: 'flex', justifyContent: 'center', alignItems: 'center', fontSize: '24px', marginBottom: '10px' }}>
-               {['✂️', 'T', '🩹', '✨', '🖼️', '🎨'][i]}
+             <div style={iconStyle}>
+               {/* Используем символы, чтобы было похоже на иконки */}
+               {['✂', 'T', '↺', '✨', '🖼', '🎨'][i]}
              </div>
              <div style={{ fontSize: '12px', color: '#555', whiteSpace: 'nowrap' }}>{tool}</div>
            </div>
@@ -222,7 +224,7 @@ export default function App() {
       </div>
 
       <div style={{ padding: '0 20px', marginBottom: '30px' }}>
-        <h2 style={{ fontSize: '18px', marginBottom: '15px' }}>ИИ-инструменты</h2>
+        <h2 style={{ fontSize: '18px', marginBottom: '15px', color: '#111' }}>ИИ-инструменты</h2>
         <div style={{ display: 'flex', gap: '15px', overflowX: 'auto', paddingBottom: '10px' }}>
           <div onClick={() => setView('editor')} style={{ minWidth: '250px', height: '180px', borderRadius: '15px', backgroundImage: `url(https://images.unsplash.com/photo-1544005313-94ddf0286df2?q=80&w=300&auto=format&fit=crop)`, backgroundSize: 'cover', position: 'relative', cursor: 'pointer' }}>
             <div style={{ position: 'absolute', bottom: '10px', left: '10px', background: 'rgba(255,255,255,0.9)', padding: '5px 10px', borderRadius: '10px', fontSize: '14px', fontWeight: 'bold' }}>ИИ-фон</div>
@@ -235,7 +237,7 @@ export default function App() {
 
       <div style={{ padding: '0 20px', marginBottom: '80px' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px' }}>
-          <h2 style={{ fontSize: '18px', margin: 0 }}>Популярные фоны</h2>
+          <h2 style={{ fontSize: '18px', margin: 0, color: '#111' }}>Популярные фоны</h2>
           <span onClick={() => showAlert('Все фоны')} style={{ color: '#d900a8', fontWeight: 'bold', fontSize: '14px', cursor: 'pointer' }}>See all</span>
         </div>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))', gap: '15px' }}>
@@ -250,13 +252,6 @@ export default function App() {
                <div style={{ backgroundColor: 'rgba(0,0,0,0.5)', color: 'white', borderRadius: '50%', width: '25px', height: '25px', display: 'flex', justifyContent: 'center', alignItems: 'center', fontSize: '12px' }}>17</div>
             </div>
             <div style={{ fontSize: '14px', marginTop: '5px', color: '#555' }}>Цвет</div>
-          </div>
-
-          <div onClick={() => setView('editor')} style={{ cursor: 'pointer' }}>
-             <div style={{ height: '120px', borderRadius: '15px', backgroundColor: '#2b1a12', backgroundImage: 'url(https://images.unsplash.com/photo-1509316975850-ff9c5deb0cd9?q=80&w=400&auto=format&fit=crop)', backgroundSize: 'cover', display: 'flex', justifyContent: 'flex-end', alignItems: 'flex-end', padding: '10px' }}>
-               <div style={{ backgroundColor: 'rgba(0,0,0,0.5)', color: 'white', borderRadius: '50%', width: '25px', height: '25px', display: 'flex', justifyContent: 'center', alignItems: 'center', fontSize: '12px' }}>10</div>
-             </div>
-            <div style={{ fontSize: '14px', marginTop: '5px', color: '#555' }}>Pumpkin day</div>
           </div>
 
         </div>
