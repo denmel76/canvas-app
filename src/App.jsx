@@ -2,14 +2,10 @@ import React, { useState, useRef, useEffect } from 'react';
 import { Stage, Layer, Rect, Text, Image as KonvaImage, Transformer } from 'react-konva';
 import { createClient } from '@supabase/supabase-js';
 
-// ==========================================
-// ТВОИ КЛЮЧИ
-// ==========================================
 const SUPABASE_URL = 'https://iqvujenjffevijvtdvd.supabase.co'; 
 const SUPABASE_ANON_KEY = 'sb_publishable_Cbcd0LznpbNCIA6JwOskig_4SkcqVhL';
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-// ==========================================
 
 const URLImage = ({ image, isSelected, onSelect, onChange, ...props }) => {
   const shapeRef = useRef();
