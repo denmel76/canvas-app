@@ -1,15 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Stage, Layer, Rect, Text, Image as KonvaImage, Transformer } from 'react-konva';
-import { createClient } from '@supabase/supabase-js';
-
-// ==========================================
-// ТВОИ КЛЮЧИ ИЗ SUPABASE
-// ==========================================
-const SUPABASE_URL = 'https://iqvujenjffevijvtdvd.supabase.co'; 
-const SUPABASE_ANON_KEY = 'sb_publishable_Cbcd0LznpbNCIA6JwOskig_4SkcqVhL';
-
-const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-// ==========================================
 
 const URLImage = ({ image, isSelected, onSelect, onChange, ...props }) => {
   const shapeRef = useRef();
@@ -63,62 +53,20 @@ const URLImage = ({ image, isSelected, onSelect, onChange, ...props }) => {
 };
 
 function App() {
-  const [elements, setElements] = useState([]);
+  // Загружаем из памяти браузера при старте
+  const [elements, setElements] = useState(() => {
+    const saved = localStorage.getItem('my-canvas-project');
+    return saved ? JSON.parse(saved) : [];
+  });
+  
   const [selectedId, setSelectedId] = useState(null);
-  const [user, setUser] = useState(null);
-  
-  // Данные для входа
-  const [email, setEmail] = useState('test@test.com'); 
-  const [password, setPassword] = useState('Rosa1924'); 
-  const [isLoading, setIsLoading] = useState(true);
-  
   const stageRef = useRef(null);
   const fileInputRef = useRef(null);
 
+  // Автосохранение в память браузера при любом изменении
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setUser(session?.user ?? null);
-      if (session?.user) loadProject(session.user.id);
-      else setIsLoading(false);
-    });
-
-    const { data: authListener } = supabase.auth.onAuthStateChange((_event, session) => {
-      setUser(session?.user ?? null);
-      if (session?.user) loadProject(session.user.id);
-    });
-
-    return () => authListener.subscription.unsubscribe();
-  }, []);
-
-  const loadProject = async (userId) => {
-    const { data } = await supabase.from('projects').select('data').eq('user_id', userId).single();
-    if (data && data.data) setElements(data.data);
-    setIsLoading(false);
-  };
-
-  useEffect(() => {
-    if (!user || isLoading) return;
-    const saveTimeout = setTimeout(async () => {
-      await supabase.from('projects').upsert({ 
-        user_id: user.id, 
-        data: elements,
-        updated_at: new Date()
-      });
-    }, 1500);
-    return () => clearTimeout(saveTimeout);
-  }, [elements, user, isLoading]);
-
-  // ВХОД ПО ПАРОЛЮ
-  const handleLogin = async (e) => {
-    e.preventDefault();
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
-    if (error) alert("Ошибка входа: " + error.message);
-  };
-
-  const handleLogout = async () => {
-    await supabase.auth.signOut();
-    setElements([]);
-  };
+    localStorage.setItem('my-canvas-project', JSON.stringify(elements));
+  }, [elements]);
 
   const addSquare = () => {
     setElements([...elements, { id: Date.now().toString(), type: 'rect', x: 100, y: 100, width: 150, height: 150, fill: '#' + Math.floor(Math.random()*16777215).toString(16) }]);
@@ -187,40 +135,11 @@ function App() {
 
   const selectedElement = elements.find(el => el.id === selectedId);
 
-  // ЭКРАН ВХОДА
-  if (!user) {
-    return (
-      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh', backgroundColor: '#121212', color: 'white', flexDirection: 'column' }}>
-        <h1>Вход в редактор</h1>
-        <form onSubmit={handleLogin} style={{ display: 'flex', flexDirection: 'column', gap: '10px', width: '300px' }}>
-          <input 
-            type="email" 
-            placeholder="Ваш Email" 
-            value={email} 
-            onChange={(e) => setEmail(e.target.value)} 
-            required 
-            style={{ padding: '10px', borderRadius: '5px', border: 'none' }}
-          />
-          <input 
-            type="password" 
-            placeholder="Пароль" 
-            value={password} 
-            onChange={(e) => setPassword(e.target.value)} 
-            required 
-            style={{ padding: '10px', borderRadius: '5px', border: 'none' }}
-          />
-          <button type="submit" style={{ padding: '10px', backgroundColor: '#7B61FF', color: 'white', border: 'none', borderRadius: '5px', cursor: 'pointer', fontWeight: 'bold' }}>
-            Войти
-          </button>
-        </form>
-      </div>
-    );
-  }
-
   return (
     <div style={{ display: 'flex', width: '100vw', height: '100vh', backgroundColor: '#121212' }}>
       <input type="file" accept="image/*" ref={fileInputRef} onChange={handleImageUpload} style={{ display: 'none' }} />
 
+      {/* ЛЕВАЯ ПАНЕЛЬ */}
       <div style={{ width: '80px', backgroundColor: '#1e1e1e', display: 'flex', flexDirection: 'column', alignItems: 'center', paddingTop: '20px', gap: '15px', zIndex: 10 }}>
         <button onClick={addSquare} style={{ fontSize: '24px', background: 'transparent', border: 'none', color: 'white', cursor: 'pointer' }}>⬛</button>
         <button onClick={addText} style={{ fontSize: '24px', background: 'transparent', border: 'none', color: 'white', cursor: 'pointer' }}>T</button>
@@ -233,6 +152,7 @@ function App() {
         <button onClick={deleteSelected} disabled={!selectedId} style={{ fontSize: '20px', background: 'transparent', border: 'none', color: selectedId ? '#ff4444' : '#555' }}>🗑️</button>
       </div>
 
+      {/* ХОЛСТ */}
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', backgroundColor: '#2c2c2c', position: 'relative' }}>
         
         {selectedElement && selectedElement.type === 'text' && (
@@ -244,12 +164,10 @@ function App() {
           </div>
         )}
 
-        <div style={{ width: '100%', height: '60px', backgroundColor: '#1e1e1e', display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0 20px', boxSizing: 'border-box' }}>
-          <div style={{ color: '#aaa', fontSize: '14px' }}>Вы вошли как: {user.email}</div>
-          <div style={{ display: 'flex', gap: '10px' }}>
-            <button onClick={handleLogout} style={{ padding: '10px 20px', fontSize: '16px', backgroundColor: 'transparent', color: '#ff4444', border: '1px solid #ff4444', borderRadius: '8px', cursor: 'pointer' }}>Выйти</button>
-            <button onClick={downloadImage} style={{ padding: '10px 20px', fontSize: '16px', backgroundColor: '#7B61FF', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold' }}>⬇️ Скачать</button>
-          </div>
+        <div style={{ width: '100%', height: '60px', backgroundColor: '#1e1e1e', display: 'flex', justifyContent: 'flex-end', alignItems: 'center', padding: '0 20px', boxSizing: 'border-box' }}>
+          <button onClick={downloadImage} style={{ padding: '10px 20px', fontSize: '16px', backgroundColor: '#7B61FF', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold' }}>
+            ⬇️ Скачать
+          </button>
         </div>
 
         <div style={{ flex: 1, display: 'flex', justifyContent: 'center', alignItems: 'center', overflow: 'hidden' }}>
