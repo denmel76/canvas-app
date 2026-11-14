@@ -59,7 +59,7 @@ function App() {
   });
   
   const [selectedId, setSelectedId] = useState(null);
-  const [bgColor, setBgColor] = useState('#ffffff'); // Цвет фона
+  const [bgColor, setBgColor] = useState('#ffffff');
   const stageRef = useRef(null);
   const fileInputRef = useRef(null);
 
@@ -128,17 +128,16 @@ function App() {
 
   const selectedElement = elements.find(el => el.id === selectedId);
 
-  // Обновление свойств выбранного элемента
   const updateSelected = (key, value) => {
     setElements(elements.map(el => el.id === selectedId ? { ...el, [key]: value } : el));
   };
 
   return (
-    <div style={{ display: 'flex', width: '100vw', height: '100vh', backgroundColor: '#121212' }}>
+    <div style={{ display: 'flex', width: '100vw', height: '100vh', backgroundColor: '#121212', overflow: 'hidden' }}>
       <input type="file" accept="image/*" ref={fileInputRef} onChange={handleImageUpload} style={{ display: 'none' }} />
 
-      {/* ЛЕВАЯ ПАНЕЛЬ */}
-      <div style={{ width: '80px', backgroundColor: '#1e1e1e', display: 'flex', flexDirection: 'column', alignItems: 'center', paddingTop: '20px', gap: '15px', zIndex: 10 }}>
+      {/* ЛЕВАЯ ПАНЕЛЬ (Инструменты) */}
+      <div style={{ width: '70px', backgroundColor: '#1e1e1e', display: 'flex', flexDirection: 'column', alignItems: 'center', paddingTop: '20px', gap: '15px', zIndex: 10, borderRight: '1px solid #333' }}>
         <button onClick={addSquare} style={{ fontSize: '24px', background: 'transparent', border: 'none', color: 'white', cursor: 'pointer' }}>⬛</button>
         <button onClick={addText} style={{ fontSize: '24px', background: 'transparent', border: 'none', color: 'white', cursor: 'pointer' }}>T</button>
         <button onClick={() => fileInputRef.current.click()} style={{ fontSize: '24px', background: 'transparent', border: 'none', color: 'white', cursor: 'pointer' }}>🖼️</button>
@@ -149,49 +148,18 @@ function App() {
         <button onClick={deleteSelected} disabled={!selectedId} style={{ fontSize: '20px', background: 'transparent', border: 'none', color: selectedId ? '#ff4444' : '#555' }}>🗑️</button>
       </div>
 
-      {/* ХОЛСТ */}
-      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', backgroundColor: '#2c2c2c', position: 'relative' }}>
+      {/* ЦЕНТР (Холст) */}
+      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', backgroundColor: '#2c2c2c', overflow: 'auto' }}>
         
-        {/* ПАНЕЛЬ НАСТРОЕК СПРАВА */}
-        <div style={{ position: 'absolute', top: '80px', right: '20px', width: '250px', backgroundColor: '#1e1e1e', padding: '20px', borderRadius: '10px', color: 'white', display: 'flex', flexDirection: 'column', gap: '15px', boxShadow: '0 4px 15px rgba(0,0,0,0.5)' }}>
-          
-          {/* Если ничего не выбрано - меняем фон */}
-          {!selectedId && (
-            <>
-              <h3 style={{ margin: 0, fontSize: '16px' }}>Фон холста</h3>
-              <input type="color" value={bgColor} onChange={(e) => setBgColor(e.target.value)} style={{ cursor: 'pointer', height: '40px', width: '100%' }} />
-            </>
-          )}
-
-          {/* Если выбран текст - настройки текста */}
-          {selectedElement && selectedElement.type === 'text' && (
-            <>
-              <h3 style={{ margin: 0, fontSize: '16px' }}>Настройки текста</h3>
-              <input type="text" value={selectedElement.text} onChange={(e) => updateSelected('text', e.target.value)} style={{ padding: '8px', borderRadius: '5px', border: 'none', backgroundColor: '#333', color: 'white' }} />
-              <label style={{ fontSize: '14px', color: '#aaa' }}>Размер: {selectedElement.fontSize}px</label>
-              <input type="range" min="12" max="100" value={selectedElement.fontSize} onChange={(e) => updateSelected('fontSize', parseInt(e.target.value))} style={{ cursor: 'pointer' }} />
-              <label style={{ fontSize: '14px', color: '#aaa' }}>Цвет:</label>
-              <input type="color" value={selectedElement.fill} onChange={(e) => updateSelected('fill', e.target.value)} style={{ cursor: 'pointer', height: '40px', width: '100%' }} />
-            </>
-          )}
-
-          {/* Если выбрана фигура или картинка - меняем цвет (для фигур) */}
-          {selectedElement && (selectedElement.type === 'rect' || selectedElement.type === 'image') && (
-            <>
-              <h3 style={{ margin: 0, fontSize: '16px' }}>Цвет элемента</h3>
-              <input type="color" value={selectedElement.fill || '#000000'} onChange={(e) => updateSelected('fill', e.target.value)} style={{ cursor: 'pointer', height: '40px', width: '100%' }} />
-              <p style={{ fontSize: '12px', color: '#888' }}>*Цвет меняется только у фигур</p>
-            </>
-          )}
-        </div>
-
-        <div style={{ width: '100%', height: '60px', backgroundColor: '#1e1e1e', display: 'flex', justifyContent: 'flex-end', alignItems: 'center', padding: '0 20px', boxSizing: 'border-box' }}>
+        {/* ВЕРХНЯЯ ПАНЕЛЬ */}
+        <div style={{ width: '100%', height: '60px', backgroundColor: '#1e1e1e', display: 'flex', justifyContent: 'flex-end', alignItems: 'center', padding: '0 20px', boxSizing: 'border-box', flexShrink: 0, borderBottom: '1px solid #333' }}>
           <button onClick={downloadImage} style={{ padding: '10px 20px', fontSize: '16px', backgroundColor: '#7B61FF', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold' }}>
             ⬇️ Скачать
           </button>
         </div>
 
-        <div style={{ flex: 1, display: 'flex', justifyContent: 'center', alignItems: 'center', overflow: 'hidden' }}>
+        {/* ОБЛАСТЬ С ХОЛСТОМ */}
+        <div style={{ flex: 1, display: 'flex', justifyContent: 'center', alignItems: 'center', padding: '40px' }}>
           <div style={{ boxShadow: '0 0 20px rgba(0,0,0,0.5)' }}>
             <Stage width={600} height={800} onMouseDown={checkDeselect} onTouchStart={checkDeselect} style={{ backgroundColor: bgColor }} ref={stageRef}>
               <Layer>
@@ -213,6 +181,41 @@ function App() {
             </Stage>
           </div>
         </div>
+      </div>
+
+      {/* ПРАВАЯ ПАНЕЛЬ (Свойства) - теперь она всегда справа и не перекрывает холст */}
+      <div style={{ width: '280px', backgroundColor: '#1e1e1e', padding: '20px', borderLeft: '1px solid #333', display: 'flex', flexDirection: 'column', gap: '15px', color: 'white', overflowY: 'auto' }}>
+        
+        {!selectedId && (
+          <>
+            <h3 style={{ margin: 0, fontSize: '16px' }}>Настройки холста</h3>
+            <label style={{ fontSize: '14px', color: '#aaa' }}>Цвет фона:</label>
+            <input type="color" value={bgColor} onChange={(e) => setBgColor(e.target.value)} style={{ cursor: 'pointer', height: '50px', width: '100%', border: 'none', borderRadius: '5px', padding: 0 }} />
+          </>
+        )}
+
+        {selectedElement && selectedElement.type === 'text' && (
+          <>
+            <h3 style={{ margin: 0, fontSize: '16px', marginBottom: '10px' }}>Настройки текста</h3>
+            <label style={{ fontSize: '12px', color: '#aaa' }}>Текст:</label>
+            <input type="text" value={selectedElement.text} onChange={(e) => updateSelected('text', e.target.value)} style={{ padding: '10px', borderRadius: '5px', border: 'none', backgroundColor: '#333', color: 'white' }} />
+            
+            <label style={{ fontSize: '12px', color: '#aaa', marginTop: '10px' }}>Размер шрифта: {selectedElement.fontSize}px</label>
+            <input type="range" min="12" max="150" value={selectedElement.fontSize} onChange={(e) => updateSelected('fontSize', parseInt(e.target.value))} style={{ cursor: 'pointer' }} />
+            
+            <label style={{ fontSize: '12px', color: '#aaa', marginTop: '10px' }}>Цвет текста:</label>
+            <input type="color" value={selectedElement.fill} onChange={(e) => updateSelected('fill', e.target.value)} style={{ cursor: 'pointer', height: '50px', width: '100%', border: 'none', borderRadius: '5px', padding: 0 }} />
+          </>
+        )}
+
+        {selectedElement && (selectedElement.type === 'rect' || selectedElement.type === 'image') && (
+          <>
+            <h3 style={{ margin: 0, fontSize: '16px', marginBottom: '10px' }}>Настройки элемента</h3>
+            <label style={{ fontSize: '12px', color: '#aaa' }}>Цвет заливки (для фигур):</label>
+            <input type="color" value={selectedElement.fill || '#000000'} onChange={(e) => updateSelected('fill', e.target.value)} style={{ cursor: 'pointer', height: '50px', width: '100%', border: 'none', borderRadius: '5px', padding: 0 }} />
+          </>
+        )}
+
       </div>
     </div>
   );
