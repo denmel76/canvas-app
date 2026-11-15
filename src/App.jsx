@@ -16,7 +16,6 @@ const Icons = {
   Layers: () => <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 12 12 17 22 12"/><polyline points="2 17 12 22 22 17"/></svg>,
 };
 
-// --- БАЗА ДАННЫХ ---
 const FONTS = [
   'Arial', 'Times New Roman', 'Courier New', 'Georgia', 'Verdana', 'Trebuchet MS', 'Tahoma', 'Impact', 'Comic Sans MS', 'Palatino Linotype',
   'Lucida Sans Unicode', 'Garamond', 'Bookman Old Style', 'Arial Black', 'Helvetica', 'Geneva', 'Monaco', 'Optima', 'Futura', 'Baskerville',
@@ -40,7 +39,6 @@ const BACKGROUNDS = [
   { type: 'gradient', value: 'linear-gradient(135deg, #84fab0 0%, #8fd3f4 100%)' },
 ];
 
-// --- КОМПОНЕНТ КАРТИНКИ С ТРАНСФОРМАЦИЕЙ ---
 const URLImage = ({ image, isSelected, onSelect, onChange, ...props }) => {
   const shapeRef = useRef();
   const trRef = useRef();
@@ -104,7 +102,6 @@ function CanvasEditor({ onBack }) {
     localStorage.setItem('canvas_bg', bgColor);
   }, [elements, lines, bgColor]);
 
-  // Привязка трансформера
   useEffect(() => {
     if (selectedId && trRef.current) {
       const node = stageRef.current.findOne('#' + selectedId);
@@ -230,7 +227,6 @@ function CanvasEditor({ onBack }) {
                 </React.Fragment>
               ))}
               {lines.map((line, i) => <Line key={i} points={line.points} stroke="#111" strokeWidth={3} tension={0.5} lineCap="round" lineJoin="round" />)}
-              
               {elements.map((el) => {
                 const isSelected = el.id === selectedId;
                 const commonProps = {
@@ -266,7 +262,11 @@ function CanvasEditor({ onBack }) {
         <div style={{ position: 'absolute', bottom: '90px', left: '10px', right: '10px', backgroundColor: '#fff', padding: '15px', borderRadius: '15px', boxShadow: '0 -4px 20px rgba(0,0,0,0.15)', zIndex: 200, display: 'flex', flexDirection: 'column', gap: '10px' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <span style={{ fontWeight: 'bold' }}>Настройки элемента</span>
-            <button onClick={deleteSelected} style={{ backgroundColor: '#ff4444', color: 'white', border: 'none', padding: '5px 15px', borderRadius: '5px', fontWeight: 'bold' }}>Удалить</button>
+            <div style={{ display: 'flex', gap: '5px' }}>
+              <button onClick={() => moveLayer('up')} style={{ border: '1px solid #ddd', background: 'white', padding: '5px 10px', borderRadius: '5px' }}>Вверх</button>
+              <button onClick={() => moveLayer('down')} style={{ border: '1px solid #ddd', background: 'white', padding: '5px 10px', borderRadius: '5px' }}>Вниз</button>
+              <button onClick={deleteSelected} style={{ backgroundColor: '#ff4444', color: 'white', border: 'none', padding: '5px 15px', borderRadius: '5px', fontWeight: 'bold' }}>Удалить</button>
+            </div>
           </div>
 
           {selectedElement.type === 'text' && (
@@ -350,7 +350,7 @@ function CanvasEditor({ onBack }) {
         </div>
 
         <div onClick={() => { setActivePanel('color'); setSelectedId(null); }} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', minWidth: '60px', cursor: 'pointer', color: activePanel === 'color' ? '#d900a8' : '#333' }}>
-          <Icons.Color /> <span style={{ fontSize: '11px', marginTop: '5px' }}>Цвет</span>
+          <Icons.Color /> <span style={{ fontSize: '11px', marginTop: '5px' }}>Фон</span>
         </div>
 
         <div onClick={() => fileInputRef.current.click()} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', minWidth: '60px', cursor: 'pointer', color: '#333' }}>
