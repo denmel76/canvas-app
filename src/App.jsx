@@ -377,4 +377,13 @@ export default function App() {
           <div onClick={() => setView('editor')} style={{ minWidth: '280px', height: '180px', borderRadius: '20px', backgroundImage: `url(https://images.unsplash.com/photo-1544005313-94ddf0286df2?q=80&w=400&auto=format&fit=crop)`, backgroundSize: 'cover', position: 'relative', cursor: 'pointer' }}>
             <div style={{ position: 'absolute', bottom: '15px', left: '15px', background: 'rgba(255,255,255,0.9)', padding: '5px 10px', borderRadius: '10px', fontSize: '12px', fontWeight: 'bold' }}>ИИ-фон</div>
           </div>
-          <div onClick={() => setView('editor')} style={{ minWidth: '280px', height: '180px', borderRadius: '20px', backgroundImage: `url(https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?q=80&w=400&auto=format&fit=crop)`, backgroundSize: 'cover', position: 'relative',
+          <div onClick={() => setView('editor')} style={{ minWidth: '280px', height: '180px', borderRadius: '20px', backgroundImage: `url(https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?q=80&w=400&auto=format&fit=crop)`, backgroundSize: 'cover', position: 'relative', cursor: 'pointer' }}>
+             <div style={{ position: 'absolute', bottom: '15px', left: '15px', background: 'rgba(255,255,255,0.9)', padding: '5px 10px', borderRadius: '10px', fontSize: '12px', fontWeight: 'bold' }}>Мои аватары</div>
+          </div>
+        </div>
+      </div>
+
+      <div style={{ padding: '0 30px', marginBottom: '40px' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+          <h2 style={{ fontSize: '18px', margin: 0, color: '#111' }}>Популярные фоны</h2>
+          <span style={{ color: '#d900a8', fontWeight: 'bold',
