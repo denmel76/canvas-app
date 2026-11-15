@@ -1,7 +1,27 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Stage, Layer, Rect, Text, Line, Image as KonvaImage, Transformer } from 'react-konva';
+import { createClient } from '@supabase/supabase-js';
 
-// --- ИКОНКИ (SVG) ---
+// ==========================================
+// КЛЮЧИ SUPABASE
+// ==========================================
+const SUPABASE_URL = 'https://iqvujenjffevijvtdvd.supabase.co'; 
+const SUPABASE_ANON_KEY = 'sb_publishable_Cbcd0LznpbNCIA6JwOskig_4SkcqVhL';
+const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+const getDeviceId = () => {
+  let id = localStorage.getItem('canvas_device_id');
+  if (!id) {
+    id = 'device_' + Math.random().toString(36).substr(2, 9);
+    localStorage.setItem('canvas_device_id', id);
+  }
+  return id;
+};
+const DEVICE_ID = getDeviceId();
+
+// ==========================================
+// ИКОНКИ
+// ==========================================
 const Icons = {
   Text: () => <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M4 7V4h16v3"/><path d="M9 20h6"/><path d="M12 4v16"/></svg>,
   Shape: () => <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>,
@@ -73,34 +93,55 @@ const URLImage = ({ image, isSelected, onSelect, onChange, ...props }) => {
 };
 
 function CanvasEditor({ onBack }) {
-  const [elements, setElements] = useState(() => {
-    const saved = localStorage.getItem('canvas_elements');
-    return saved ? JSON.parse(saved) : [];
-  });
-  
-  const [lines, setLines] = useState(() => {
-    const saved = localStorage.getItem('canvas_lines');
-    return saved ? JSON.parse(saved) : [];
-  });
-
-  const [bgColor, setBgColor] = useState(() => localStorage.getItem('canvas_bg') || '#ffffff');
-
+  const [elements, setElements] = useState([]);
+  const [lines, setLines] = useState([]);
+  const [bgColor, setBgColor] = useState('#ffffff');
   const [selectedId, setSelectedId] = useState(null);
   const [tool, setTool] = useState('select');
   const isDrawing = useRef(false);
   const [showGrid, setShowGrid] = useState(false);
   const [canvasSize, setCanvasSize] = useState({ width: 600, height: 800 });
   const [activePanel, setActivePanel] = useState(null);
+  const [isLoading, setIsLoading] = useState(true);
   
   const stageRef = useRef(null);
   const fileInputRef = useRef(null);
   const trRef = useRef(null);
 
+  // 1. ЗАГРУЗКА ИЗ ОБЛАКА
   useEffect(() => {
-    localStorage.setItem('canvas_elements', JSON.stringify(elements));
-    localStorage.setItem('canvas_lines', JSON.stringify(lines));
-    localStorage.setItem('canvas_bg', bgColor);
-  }, [elements, lines, bgColor]);
+    const loadProject = async () => {
+      try {
+        const { data } = await supabase.from('projects').select('data').eq('user_id', DEVICE_ID).single();
+        if (data && data.data) {
+          setElements(data.data.elements || []);
+          setLines(data.data.lines || []);
+          setBgColor(data.data.bgColor || '#ffffff');
+        }
+      } catch (error) {
+        console.log("Нет сохраненных проектов в облаке");
+      }
+      setIsLoading(false);
+    };
+    loadProject();
+  }, []);
+
+  // 2. АВТОСОХРАНЕНИЕ В ОБЛАКО
+  useEffect(() => {
+    if (isLoading) return;
+    const saveTimeout = setTimeout(async () => {
+      try {
+        await supabase.from('projects').upsert({ 
+          user_id: DEVICE_ID, 
+          data: { elements, lines, bgColor },
+          updated_at: new Date()
+        });
+      } catch (error) {
+        console.log("Ошибка сохранения в облако", error);
+      }
+    }, 2000);
+    return () => clearTimeout(saveTimeout);
+  }, [elements, lines, bgColor, isLoading]);
 
   useEffect(() => {
     if (selectedId && trRef.current) {
@@ -182,6 +223,22 @@ function CanvasEditor({ onBack }) {
     setElements(elements.map(el => el.id === selectedId ? { ...el, [key]: value } : el));
   };
 
+  const moveLayer = (direction) => {
+    if (!selectedId) return;
+    const index = elements.findIndex(el => el.id === selectedId);
+    if (index === -1) return;
+    const newElements = [...elements];
+    const element = newElements.splice(index, 1)[0];
+    if (direction === 'up' && index < newElements.length) {
+      newElements.splice(index + 1, 0, element);
+    } else if (direction === 'down' && index > 0) {
+      newElements.splice(index - 1, 0, element);
+    } else {
+      newElements.splice(index, 0, element);
+    }
+    setElements(newElements);
+  };
+
   const renderShape = (shape, props) => {
     const { x, y, width, height, fill } = props;
     const cx = x + width / 2;
@@ -200,6 +257,16 @@ function CanvasEditor({ onBack }) {
   };
 
   const selectedElement = elements.find(el => el.id === selectedId);
+
+  // ПРИМЕНЕНИЕ СТИЛЕЙ К ТЕКСТУ (обводка, тень)
+  const textStyles = selectedElement && selectedElement.type === 'text' ? {
+    stroke: selectedElement.strokeColor || 'transparent',
+    strokeWidth: selectedElement.strokeWidth || 0,
+    shadowColor: selectedElement.shadowColor || 'transparent',
+    shadowBlur: selectedElement.shadowBlur || 0,
+    shadowOffsetX: 2,
+    shadowOffsetY: 2,
+  } : {};
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', width: '100vw', height: '100vh', backgroundColor: '#f9f9f9', overflow: 'hidden', fontFamily: 'sans-serif' }}>
@@ -227,6 +294,7 @@ function CanvasEditor({ onBack }) {
                 </React.Fragment>
               ))}
               {lines.map((line, i) => <Line key={i} points={line.points} stroke="#111" strokeWidth={3} tension={0.5} lineCap="round" lineJoin="round" />)}
+              
               {elements.map((el) => {
                 const isSelected = el.id === selectedId;
                 const commonProps = {
@@ -242,7 +310,7 @@ function CanvasEditor({ onBack }) {
                   return <URLImage key={el.id} image={img} src={el.src} {...el} {...commonProps} isSelected={isSelected} onSelect={() => setSelectedId(el.id)} onChange={(newAttrs) => setElements(elements.map(item => item.id === el.id ? { ...item, ...newAttrs } : item))} />;
                 }
                 if (el.type === 'text') {
-                  return <Text key={el.id} {...el} {...commonProps} stroke={isSelected ? '#d900a8' : undefined} strokeWidth={isSelected ? 1 : 0} />;
+                  return <Text key={el.id} {...el} {...commonProps} {...textStyles} stroke={isSelected ? '#d900a8' : textStyles.stroke} strokeWidth={isSelected ? 1 : textStyles.strokeWidth} />;
                 }
                 if (el.type === 'shape') {
                   return React.cloneElement(renderShape(el.shapeType, el), {
@@ -257,11 +325,11 @@ function CanvasEditor({ onBack }) {
         </div>
       </div>
 
-      {/* ПАНЕЛЬ РЕДАКТИРОВАНИЯ */}
+      {/* ПАНЕЛЬ РЕДАКТИРОВАНИЯ (Текст и Обводка) */}
       {selectedElement && (
-        <div style={{ position: 'absolute', bottom: '90px', left: '10px', right: '10px', backgroundColor: '#fff', padding: '15px', borderRadius: '15px', boxShadow: '0 -4px 20px rgba(0,0,0,0.15)', zIndex: 200, display: 'flex', flexDirection: 'column', gap: '10px' }}>
+        <div style={{ position: 'absolute', bottom: '90px', left: '10px', right: '10px', backgroundColor: '#fff', padding: '15px', borderRadius: '15px', boxShadow: '0 -4px 20px rgba(0,0,0,0.15)', zIndex: 200, display: 'flex', flexDirection: 'column', gap: '10px', maxHeight: '300px', overflowY: 'auto' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <span style={{ fontWeight: 'bold' }}>Настройки элемента</span>
+            <span style={{ fontWeight: 'bold' }}>Настройки</span>
             <div style={{ display: 'flex', gap: '5px' }}>
               <button onClick={() => moveLayer('up')} style={{ border: '1px solid #ddd', background: 'white', padding: '5px 10px', borderRadius: '5px' }}>Вверх</button>
               <button onClick={() => moveLayer('down')} style={{ border: '1px solid #ddd', background: 'white', padding: '5px 10px', borderRadius: '5px' }}>Вниз</button>
@@ -272,47 +340,50 @@ function CanvasEditor({ onBack }) {
           {selectedElement.type === 'text' && (
             <>
               <input type="text" value={selectedElement.text} onChange={(e) => updateSelected('text', e.target.value)} style={{ padding: '10px', border: '1px solid #ddd', borderRadius: '5px', width: '100%', boxSizing: 'border-box' }} />
-              <select value={selectedElement.fontFamily} onChange={(e) => updateSelected('fontFamily', e.target.value)} style={{ padding: '10px', border: '1px solid #ddd', borderRadius: '5px' }}>
-                {FONTS.map(f => <option key={f} value={f}>{f}</option>)}
-              </select>
+              <div style={{ display: 'flex', gap: '10px' }}>
+                <select value={selectedElement.fontFamily} onChange={(e) => updateSelected('fontFamily', e.target.value)} style={{ flex: 1, padding: '10px', border: '1px solid #ddd', borderRadius: '5px' }}>
+                  {FONTS.map(f => <option key={f} value={f}>{f}</option>)}
+                </select>
+                <input type="color" value={selectedElement.fill} onChange={(e) => updateSelected('fill', e.target.value)} style={{ width: '40px', height: '40px', padding: 0, border: 'none', borderRadius: '5px' }} />
+              </div>
+              
+              <label style={{ fontSize: '12px', color: '#666' }}>Размер шрифта</label>
               <input type="range" min="10" max="100" value={selectedElement.fontSize} onChange={(e) => updateSelected('fontSize', parseInt(e.target.value))} />
+              
+              <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+                 <div style={{ flex: 1 }}>
+                   <label style={{ fontSize: '12px', color: '#666' }}>Цвет обводки</label>
+                   <input type="color" value={selectedElement.strokeColor || '#000000'} onChange={(e) => updateSelected('strokeColor', e.target.value)} style={{ width: '100%', height: '40px', padding: 0, border: 'none', borderRadius: '5px' }} />
+                 </div>
+                 <div style={{ flex: 1 }}>
+                   <label style={{ fontSize: '12px', color: '#666' }}>Толщина обводки</label>
+                   <input type="range" min="0" max="10" value={selectedElement.strokeWidth || 0} onChange={(e) => updateSelected('strokeWidth', parseInt(e.target.value))} />
+                 </div>
+              </div>
             </>
           )}
 
-          {(selectedElement.type === 'text' || selectedElement.type === 'shape') && (
+          {(selectedElement.type === 'shape') && (
             <input type="color" value={selectedElement.fill} onChange={(e) => updateSelected('fill', e.target.value)} style={{ height: '40px', width: '100%', cursor: 'pointer', border: 'none', borderRadius: '5px' }} />
           )}
         </div>
       )}
 
-      {/* ПАНЕЛЬ ЦВЕТА / ФОНА */}
+      {/* ОСТАЛЬНЫЕ ПАНЕЛИ */}
       {activePanel === 'color' && (
         <div style={{ position: 'absolute', bottom: '80px', left: '10px', right: '10px', height: '150px', backgroundColor: '#fff', borderRadius: '10px', padding: '15px', zIndex: 100, boxShadow: '0 -4px 15px rgba(0,0,0,0.1)', overflowY: 'auto' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '10px' }}>
             <h4 style={{margin: 0}}>Фоны</h4>
             <button onClick={() => setActivePanel(null)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontWeight: 'bold' }}>X</button>
           </div>
-          
           <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
              {BACKGROUNDS.map((bg, i) => (
                <div key={i} onClick={() => { setBgColor(bg.value); setActivePanel(null); }} style={{ width: '50px', height: '50px', background: bg.value, borderRadius: '8px', border: '1px solid #ccc', cursor: 'pointer' }} />
              ))}
           </div>
-
-          {selectedId && (
-             <>
-               <h4 style={{margin: '15px 0 10px 0'}}>Цвет элемента</h4>
-               <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
-                 {['#000000', '#ffffff', '#ff0000', '#00ff00', '#0000ff', '#ffff00', '#ff00ff', '#00ffff'].map(c => (
-                    <div key={c} onClick={() => updateSelected('fill', c)} style={{ width: '40px', height: '40px', backgroundColor: c, border: '1px solid #ccc', borderRadius: '5px', cursor: 'pointer' }} />
-                 ))}
-               </div>
-             </>
-          )}
         </div>
       )}
 
-      {/* ПАНЕЛЬ ШРИФТОВ */}
       {activePanel === 'text' && (
         <div style={{ position: 'absolute', bottom: '80px', left: '10px', right: '10px', height: '200px', backgroundColor: '#fff', borderRadius: '10px', padding: '15px', overflowY: 'auto', zIndex: 100, boxShadow: '0 -4px 15px rgba(0,0,0,0.1)' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '10px' }}>
@@ -325,7 +396,6 @@ function CanvasEditor({ onBack }) {
         </div>
       )}
 
-      {/* ПАНЕЛЬ ФИГУР */}
       {activePanel === 'shapes' && (
         <div style={{ position: 'absolute', bottom: '80px', left: '10px', right: '10px', height: '200px', backgroundColor: '#fff', borderRadius: '10px', padding: '15px', overflowY: 'auto', zIndex: 100, boxShadow: '0 -4px 15px rgba(0,0,0,0.1)' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '10px' }}>
@@ -338,41 +408,31 @@ function CanvasEditor({ onBack }) {
         </div>
       )}
 
-      {/* НИЖНЯЯ ПАНЕЛЬ */}
       <div style={{ height: '80px', backgroundColor: '#fff', display: 'flex', alignItems: 'center', overflowX: 'auto', borderTop: '1px solid #eee', padding: '0 10px', flexShrink: 0, gap: '20px' }}>
-        
         <div onClick={() => { setActivePanel('text'); setSelectedId(null); }} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', minWidth: '60px', cursor: 'pointer', color: activePanel === 'text' ? '#d900a8' : '#333' }}>
           <Icons.Text /> <span style={{ fontSize: '11px', marginTop: '5px' }}>Текст</span>
         </div>
-        
         <div onClick={() => { setActivePanel('shapes'); setSelectedId(null); }} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', minWidth: '60px', cursor: 'pointer', color: activePanel === 'shapes' ? '#d900a8' : '#333' }}>
           <Icons.Shape /> <span style={{ fontSize: '11px', marginTop: '5px' }}>Фигуры</span>
         </div>
-
         <div onClick={() => { setActivePanel('color'); setSelectedId(null); }} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', minWidth: '60px', cursor: 'pointer', color: activePanel === 'color' ? '#d900a8' : '#333' }}>
           <Icons.Color /> <span style={{ fontSize: '11px', marginTop: '5px' }}>Фон</span>
         </div>
-
         <div onClick={() => fileInputRef.current.click()} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', minWidth: '60px', cursor: 'pointer', color: '#333' }}>
           <Icons.Image /> <span style={{ fontSize: '11px', marginTop: '5px' }}>Фото</span>
         </div>
-
         <div onClick={() => { setTool('draw'); setActivePanel(null); setSelectedId(null); }} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', minWidth: '60px', cursor: 'pointer', color: tool === 'draw' ? '#d900a8' : '#333' }}>
           <Icons.Draw /> <span style={{ fontSize: '11px', marginTop: '5px' }}>Рисовать</span>
         </div>
-        
         <div onClick={clearDrawings} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', minWidth: '60px', cursor: 'pointer', color: '#333' }}>
           <Icons.Eraser /> <span style={{ fontSize: '11px', marginTop: '5px' }}>Стереть</span>
         </div>
-
         <div onClick={() => { setShowGrid(!showGrid); setActivePanel(null); }} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', minWidth: '60px', cursor: 'pointer', color: showGrid ? '#d900a8' : '#333' }}>
           <Icons.Grid /> <span style={{ fontSize: '11px', marginTop: '5px' }}>Сетка</span>
         </div>
-
         <div onClick={() => { setCanvasSize(canvasSize.width === 600 ? { width: 800, height: 600 } : { width: 600, height: 800 }); setActivePanel(null); }} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', minWidth: '60px', cursor: 'pointer', color: '#333' }}>
           <Icons.Cut /> <span style={{ fontSize: '11px', marginTop: '5px' }}>Формат</span>
         </div>
-
       </div>
       <input type="file" accept="image/*" ref={fileInputRef} onChange={handleImageUpload} style={{ display: 'none' }} />
     </div>
