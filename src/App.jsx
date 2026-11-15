@@ -386,4 +386,27 @@ export default function App() {
       <div style={{ padding: '0 30px', marginBottom: '40px' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
           <h2 style={{ fontSize: '18px', margin: 0, color: '#111' }}>Популярные фоны</h2>
-          <span style={{ color: '#d900a8', fontWeight: 'bold',
+          <span style={{ color: '#d900a8', fontWeight: 'bold' }}>See all</span>
+        </div>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: '20px' }}>
+          <div onClick={() => setView('editor')} style={{ cursor: 'pointer' }}>
+            <div style={{ height: '140px', borderRadius: '20px', border: '1px solid #ddd', backgroundImage: 'linear-gradient(45deg, #f5f5f5 25%, transparent 25%), linear-gradient(-45deg, #f5f5f5 25%, transparent 25%), linear-gradient(45deg, transparent 75%, #f5f5f5 75%), linear-gradient(-45deg, transparent 75%, #f5f5f5 75%)', backgroundSize: '20px 20px', backgroundColor: 'white' }}></div>
+            <div style={{ fontSize: '14px', marginTop: '10px', color: '#555' }}>Пустой</div>
+          </div>
+          <div onClick={() => setView('editor')} style={{ cursor: 'pointer' }}>
+            <div style={{ height: '140px', borderRadius: '20px', background: 'linear-gradient(135deg, #f6d365 0%, #fda085 100%)', display: 'flex', justifyContent: 'flex-end', alignItems: 'flex-end', padding: '15px' }}>
+               <div style={{ backgroundColor: 'rgba(0,0,0,0.3)', color: 'white', borderRadius: '50%', width: '30px', height: '30px', display: 'flex', justifyContent: 'center', alignItems: 'center', fontSize: '12px' }}>17</div>
+            </div>
+            <div style={{ fontSize: '14px', marginTop: '10px', color: '#555' }}>Цвет</div>
+          </div>
+        </div>
+      </div>
+
+      <div style={{ position: 'fixed', bottom: '30px', left: 0, right: 0, display: 'flex', justifyContent: 'center', zIndex: 100 }}>
+        <button onClick={() => setView('editor')} style={{ padding: '15px 30px', backgroundColor: '#c400a0', color: 'white', border: 'none', borderRadius: '30px', fontSize: '18px', fontWeight: 'bold', cursor: 'pointer', boxShadow: '0 10px 20px rgba(196, 0, 160, 0.3)' }}>
+          <span>+</span> Начни с фото или видео
+        </button>
+      </div>
+    </div>
+  );
+}
