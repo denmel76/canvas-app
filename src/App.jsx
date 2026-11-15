@@ -19,9 +19,6 @@ const getDeviceId = () => {
 };
 const DEVICE_ID = getDeviceId();
 
-// ==========================================
-// ИКОНКИ
-// ==========================================
 const Icons = {
   Text: () => <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M4 7V4h16v3"/><path d="M9 20h6"/><path d="M12 4v16"/></svg>,
   Shape: () => <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>,
@@ -33,64 +30,18 @@ const Icons = {
   Cut: () => <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M6 3v12"/><path d="M18 9v12"/><path d="M6 12h12"/></svg>,
   Back: () => <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>,
   Download: () => <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>,
-  Layers: () => <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 12 12 17 22 12"/><polyline points="2 17 12 22 22 17"/></svg>,
 };
 
-const FONTS = [
-  'Arial', 'Times New Roman', 'Courier New', 'Georgia', 'Verdana', 'Trebuchet MS', 'Tahoma', 'Impact', 'Comic Sans MS', 'Palatino Linotype',
-  'Lucida Sans Unicode', 'Garamond', 'Bookman Old Style', 'Arial Black', 'Helvetica', 'Geneva', 'Monaco', 'Optima', 'Futura', 'Baskerville',
-  'Didot', 'Copperplate', 'Papyrus', 'Brush Script MT', 'Luminari', 'Trattatello', 'Herculanum', 'Snell Roundhand', 'Zapfino', 'Chalkduster',
-  'Bodoni 72', 'Bradley Hand', 'Chalkboard SE', 'Marker Felt', 'Noteworthy', 'Party LET', 'Savoye LET', 'SignPainter', 'Rockwell', 'Gill Sans',
-  'Century Gothic', 'Franklin Gothic Medium', 'Segoe UI', 'Roboto', 'Open Sans', 'Lato', 'Montserrat', 'Oswald', 'Raleway', 'Poppins',
-  'Merriweather', 'Playfair Display', 'Nunito', 'Rubik', 'Lora', 'Quicksand', 'Indie Flower', 'Shadows Into Light', 'Dancing Script', 'Pacifico',
-  'Caveat', 'Comfortaa', 'Bebas Neue', 'Anton', 'Fjalla One', 'Abel', 'Arvo', 'Bitter', 'Cabin', 'Cinzel', 'Exo', 'Fira Sans', 'Josefin Sans',
-  'Karla', 'Libre Baskerville', 'Lobster', 'Muli', 'Noto Sans', 'Oxygen', 'PT Sans', 'Source Sans Pro', 'Ubuntu', 'Varela Round', 'Work Sans',
-  'Zilla Slab', 'Alfa Slab One', 'Abril Fatface', 'Righteous', 'Satisfy', 'Courgette', 'Kaushan Script', 'Great Vibes', 'Sacramento', 'Allura',
-  'Alex Brush', 'Tangerine', 'Arial Narrow', 'Lucida Console', 'Courier', 'Georgia', 'Times'
-];
-
-const SHAPES = ['square', 'circle', 'triangle', 'star', 'heart', 'diamond', 'cross', 'moon'];
+const FONTS = ['Arial', 'Times New Roman', 'Courier New', 'Georgia', 'Verdana', 'Impact', 'Comic Sans MS', 'Palatino', 'Garamond', 'Helvetica'];
+const SHAPES = ['square', 'circle', 'triangle', 'star', 'heart', 'diamond'];
 const FULL_SHAPES = Array(100).fill(null).map((_, i) => SHAPES[i % SHAPES.length]);
 
 const BACKGROUNDS = [
-  { type: 'color', value: '#ffffff' }, { type: 'color', value: '#f0f0f0' }, { type: 'color', value: '#111111' },
-  { type: 'gradient', value: 'linear-gradient(135deg, #f6d365 0%, #fda085 100%)' },
-  { type: 'gradient', value: 'linear-gradient(135deg, #a18cd1 0%, #fbc2eb 100%)' },
-  { type: 'gradient', value: 'linear-gradient(135deg, #84fab0 0%, #8fd3f4 100%)' },
+  { value: '#ffffff' }, { value: '#f0f0f0' }, { value: '#111111' },
+  { value: 'linear-gradient(135deg, #f6d365 0%, #fda085 100%)' },
+  { value: 'linear-gradient(135deg, #a18cd1 0%, #fbc2eb 100%)' },
+  { value: 'linear-gradient(135deg, #84fab0 0%, #8fd3f4 100%)' },
 ];
-
-const URLImage = ({ image, isSelected, onSelect, onChange, ...props }) => {
-  const shapeRef = useRef();
-  const trRef = useRef();
-
-  useEffect(() => {
-    if (isSelected) {
-      trRef.current.nodes([shapeRef.current]);
-      trRef.current.getLayer().batchDraw();
-    }
-  }, [isSelected]);
-
-  return (
-    <React.Fragment>
-      <KonvaImage
-        image={image}
-        onClick={onSelect}
-        onTap={onSelect}
-        ref={shapeRef}
-        {...props}
-        draggable
-        onDragEnd={(e) => onChange({ ...props, x: e.target.x(), y: e.target.y() })}
-        onTransformEnd={(e) => {
-          const node = shapeRef.current;
-          const scaleX = node.scaleX(); const scaleY = node.scaleY();
-          node.scaleX(1); node.scaleY(1);
-          onChange({ ...props, x: node.x(), y: node.y(), width: Math.max(5, node.width() * scaleX), height: Math.max(5, node.height() * scaleY) });
-        }}
-      />
-      {isSelected && <Transformer ref={trRef} boundBoxFunc={(oldBox, newBox) => (newBox.width < 5 || newBox.height < 5) ? oldBox : newBox} />}
-    </React.Fragment>
-  );
-};
 
 function CanvasEditor({ onBack }) {
   const [elements, setElements] = useState([]);
@@ -102,13 +53,11 @@ function CanvasEditor({ onBack }) {
   const [showGrid, setShowGrid] = useState(false);
   const [canvasSize, setCanvasSize] = useState({ width: 600, height: 800 });
   const [activePanel, setActivePanel] = useState(null);
-  const [isLoading, setIsLoading] = useState(true);
   
   const stageRef = useRef(null);
   const fileInputRef = useRef(null);
-  const trRef = useRef(null);
 
-  // 1. ЗАГРУЗКА ИЗ ОБЛАКА
+  // Загрузка из облака
   useEffect(() => {
     const loadProject = async () => {
       try {
@@ -118,17 +67,13 @@ function CanvasEditor({ onBack }) {
           setLines(data.data.lines || []);
           setBgColor(data.data.bgColor || '#ffffff');
         }
-      } catch (error) {
-        console.log("Нет сохраненных проектов в облаке");
-      }
-      setIsLoading(false);
+      } catch (error) { console.log("Ошибка загрузки"); }
     };
     loadProject();
   }, []);
 
-  // 2. АВТОСОХРАНЕНИЕ В ОБЛАКО
+  // Сохранение в облако
   useEffect(() => {
-    if (isLoading) return;
     const saveTimeout = setTimeout(async () => {
       try {
         await supabase.from('projects').upsert({ 
@@ -136,25 +81,13 @@ function CanvasEditor({ onBack }) {
           data: { elements, lines, bgColor },
           updated_at: new Date()
         });
-      } catch (error) {
-        console.log("Ошибка сохранения в облако", error);
-      }
+      } catch (error) { console.log("Ошибка сохранения"); }
     }, 2000);
     return () => clearTimeout(saveTimeout);
-  }, [elements, lines, bgColor, isLoading]);
-
-  useEffect(() => {
-    if (selectedId && trRef.current) {
-      const node = stageRef.current.findOne('#' + selectedId);
-      if (node) {
-        trRef.current.nodes([node]);
-        trRef.current.getLayer().batchDraw();
-      }
-    }
-  }, [selectedId]);
+  }, [elements, lines, bgColor]);
 
   const addText = (font) => {
-    setElements([...elements, { id: Date.now().toString(), type: 'text', x: 50, y: 50, text: 'Ваш текст', fontSize: 40, fill: '#111', fontFamily: font || 'Arial' }]);
+    setElements([...elements, { id: Date.now().toString(), type: 'text', x: 50, y: 50, text: 'Текст', fontSize: 40, fill: '#111', fontFamily: font || 'Arial', strokeColor: '#000000', strokeWidth: 0 }]);
     setActivePanel(null);
   };
 
@@ -223,6 +156,7 @@ function CanvasEditor({ onBack }) {
     setElements(elements.map(el => el.id === selectedId ? { ...el, [key]: value } : el));
   };
 
+  // Функция слоев
   const moveLayer = (direction) => {
     if (!selectedId) return;
     const index = elements.findIndex(el => el.id === selectedId);
@@ -250,23 +184,11 @@ function CanvasEditor({ onBack }) {
       case 'triangle': return <Line {...props} points={[cx, y, x + width, y + height, x, y + height]} closed fill={fill} />;
       case 'star': return <Text {...props} text="★" fontSize={width} fill={fill} x={x} y={y} />;
       case 'heart': return <Text {...props} text="♥" fontSize={width} fill={fill} x={x} y={y} />;
-      case 'moon': return <Text {...props} text="☾" fontSize={width} fill={fill} x={x} y={y} />;
-      case 'cross': return <Text {...props} text="✚" fontSize={width} fill={fill} x={x} y={y} />;
       default: return <Rect {...props} />;
     }
   };
 
   const selectedElement = elements.find(el => el.id === selectedId);
-
-  // ПРИМЕНЕНИЕ СТИЛЕЙ К ТЕКСТУ (обводка, тень)
-  const textStyles = selectedElement && selectedElement.type === 'text' ? {
-    stroke: selectedElement.strokeColor || 'transparent',
-    strokeWidth: selectedElement.strokeWidth || 0,
-    shadowColor: selectedElement.shadowColor || 'transparent',
-    shadowBlur: selectedElement.shadowBlur || 0,
-    shadowOffsetX: 2,
-    shadowOffsetY: 2,
-  } : {};
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', width: '100vw', height: '100vh', backgroundColor: '#f9f9f9', overflow: 'hidden', fontFamily: 'sans-serif' }}>
@@ -307,10 +229,13 @@ function CanvasEditor({ onBack }) {
 
                 if (el.type === 'image') {
                   const img = new window.Image(); img.src = el.src;
-                  return <URLImage key={el.id} image={img} src={el.src} {...el} {...commonProps} isSelected={isSelected} onSelect={() => setSelectedId(el.id)} onChange={(newAttrs) => setElements(elements.map(item => item.id === el.id ? { ...item, ...newAttrs } : item))} />;
+                  return <KonvaImage key={el.id} image={img} {...el} {...commonProps} />;
                 }
                 if (el.type === 'text') {
-                  return <Text key={el.id} {...el} {...commonProps} {...textStyles} stroke={isSelected ? '#d900a8' : textStyles.stroke} strokeWidth={isSelected ? 1 : textStyles.strokeWidth} />;
+                  return <Text key={el.id} {...el} {...commonProps} 
+                    stroke={isSelected ? '#d900a8' : el.strokeColor} 
+                    strokeWidth={isSelected ? 1 : el.strokeWidth} 
+                  />;
                 }
                 if (el.type === 'shape') {
                   return React.cloneElement(renderShape(el.shapeType, el), {
@@ -319,21 +244,19 @@ function CanvasEditor({ onBack }) {
                 }
                 return null;
               })}
-              {selectedId && <Transformer ref={trRef} boundBoxFunc={(oldBox, newBox) => (newBox.width < 5 || newBox.height < 5) ? oldBox : newBox} />}
             </Layer>
           </Stage>
         </div>
       </div>
 
-      {/* ПАНЕЛЬ РЕДАКТИРОВАНИЯ (Текст и Обводка) */}
       {selectedElement && (
         <div style={{ position: 'absolute', bottom: '90px', left: '10px', right: '10px', backgroundColor: '#fff', padding: '15px', borderRadius: '15px', boxShadow: '0 -4px 20px rgba(0,0,0,0.15)', zIndex: 200, display: 'flex', flexDirection: 'column', gap: '10px', maxHeight: '300px', overflowY: 'auto' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <span style={{ fontWeight: 'bold' }}>Настройки</span>
             <div style={{ display: 'flex', gap: '5px' }}>
-              <button onClick={() => moveLayer('up')} style={{ border: '1px solid #ddd', background: 'white', padding: '5px 10px', borderRadius: '5px' }}>Вверх</button>
-              <button onClick={() => moveLayer('down')} style={{ border: '1px solid #ddd', background: 'white', padding: '5px 10px', borderRadius: '5px' }}>Вниз</button>
-              <button onClick={deleteSelected} style={{ backgroundColor: '#ff4444', color: 'white', border: 'none', padding: '5px 15px', borderRadius: '5px', fontWeight: 'bold' }}>Удалить</button>
+              <button onClick={() => moveLayer('up')} style={{ border: '1px solid #ddd', background: 'white', padding: '5px 10px', borderRadius: '5px', cursor: 'pointer' }}>Вверх</button>
+              <button onClick={() => moveLayer('down')} style={{ border: '1px solid #ddd', background: 'white', padding: '5px 10px', borderRadius: '5px', cursor: 'pointer' }}>Вниз</button>
+              <button onClick={deleteSelected} style={{ backgroundColor: '#ff4444', color: 'white', border: 'none', padding: '5px 15px', borderRadius: '5px', fontWeight: 'bold', cursor: 'pointer' }}>Удалить</button>
             </div>
           </div>
 
@@ -369,7 +292,6 @@ function CanvasEditor({ onBack }) {
         </div>
       )}
 
-      {/* ОСТАЛЬНЫЕ ПАНЕЛИ */}
       {activePanel === 'color' && (
         <div style={{ position: 'absolute', bottom: '80px', left: '10px', right: '10px', height: '150px', backgroundColor: '#fff', borderRadius: '10px', padding: '15px', zIndex: 100, boxShadow: '0 -4px 15px rgba(0,0,0,0.1)', overflowY: 'auto' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '10px' }}>
@@ -387,7 +309,7 @@ function CanvasEditor({ onBack }) {
       {activePanel === 'text' && (
         <div style={{ position: 'absolute', bottom: '80px', left: '10px', right: '10px', height: '200px', backgroundColor: '#fff', borderRadius: '10px', padding: '15px', overflowY: 'auto', zIndex: 100, boxShadow: '0 -4px 15px rgba(0,0,0,0.1)' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '10px' }}>
-            <h4 style={{margin: 0}}>100 Шрифтов</h4>
+            <h4 style={{margin: 0}}>Шрифты</h4>
             <button onClick={() => setActivePanel(null)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontWeight: 'bold' }}>X</button>
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
@@ -399,11 +321,11 @@ function CanvasEditor({ onBack }) {
       {activePanel === 'shapes' && (
         <div style={{ position: 'absolute', bottom: '80px', left: '10px', right: '10px', height: '200px', backgroundColor: '#fff', borderRadius: '10px', padding: '15px', overflowY: 'auto', zIndex: 100, boxShadow: '0 -4px 15px rgba(0,0,0,0.1)' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '10px' }}>
-            <h4 style={{margin: 0}}>100 Фигур</h4>
+            <h4 style={{margin: 0}}>Фигуры</h4>
             <button onClick={() => setActivePanel(null)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontWeight: 'bold' }}>X</button>
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(50px, 1fr))', gap: '10px' }}>
-            {FULL_SHAPES.map((s, i) => <div key={i} onClick={() => addShape(s)} style={{ height: '50px', backgroundColor: '#f5f5f5', borderRadius: '5px', display: 'flex', justifyContent: 'center', alignItems: 'center', fontSize: '24px', cursor: 'pointer' }}>{s === 'star' ? '★' : s === 'heart' ? '♥' : s === 'circle' ? '●' : s === 'triangle' ? '▲' : s === 'moon' ? '☾' : s === 'cross' ? '✚' : '■'}</div>)}
+            {FULL_SHAPES.map((s, i) => <div key={i} onClick={() => addShape(s)} style={{ height: '50px', backgroundColor: '#f5f5f5', borderRadius: '5px', display: 'flex', justifyContent: 'center', alignItems: 'center', fontSize: '24px', cursor: 'pointer' }}>{s === 'star' ? '★' : s === 'heart' ? '♥' : s === 'circle' ? '●' : s === 'triangle' ? '▲' : '■'}</div>)}
           </div>
         </div>
       )}
