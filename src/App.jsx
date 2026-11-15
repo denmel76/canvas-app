@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Stage, Layer, Rect, Text, Line, Image as KonvaImage, Path } from 'react-konva';
+import { Stage, Layer, Rect, Text, Line, Image as KonvaImage, Path, Transformer } from 'react-konva';
 import { createClient } from '@supabase/supabase-js';
 
 const SUPABASE_URL = 'https://iqvujenjffevijvtdvd.supabase.co'; 
@@ -31,57 +31,43 @@ const Icons = {
 
 const FONTS = ['Arial', 'Times New Roman', 'Courier New', 'Georgia', 'Verdana', 'Impact', 'Comic Sans MS', 'Palatino', 'Garamond', 'Helvetica'];
 
-// --- БИБЛИОТЕКА 100 РАЗНЫХ ФИГУР (SVG PATHS) ---
+// 100 SVG фигур
 const SHAPES_LIBRARY = [
-  // Звезды
-  { name: 'star', path: 'M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z' },
-  { name: 'star4', path: 'M12 2l2.4 7.2h7.6l-6 4.8 2.4 7.2-6-4.8-6 4.8 2.4-7.2-6-4.8h7.6z' },
-  { name: 'star6', path: 'M12 2l2.5 7.5H22l-6 4.5 2.3 7.5-6.3-4.5-6.3 4.5 2.3-7.5-6-4.5h7.5z' },
-  // Сердца
-  { name: 'heart', path: 'M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z' },
-  { name: 'heart2', path: 'M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z' },
-  // Геометрия
-  { name: 'circle', path: 'M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20z' },
-  { name: 'square', path: 'M3 3h18v18H3z' },
-  { name: 'triangle', path: 'M12 2L2 22h20L12 2z' },
-  { name: 'diamond', path: 'M12 2l10 10-10 10L2 12z' },
-  { name: 'hexagon', path: 'M12 2l8.66 5v10L12 22l-8.66-5V7z' },
-  { name: 'pentagon', path: 'M12 2l9.5 6.9-3.6 11.1H6.1L2.5 8.9z' },
-  { name: 'octagon', path: 'M8 2h8l6 6v8l-6 6H8l-6-6V8z' },
-  // Стрелки
-  { name: 'arrow-up', path: 'M12 2l-8 10h5v10h6V12h5L12 2z' },
-  { name: 'arrow-down', path: 'M12 22l8-10h-5V2H9v10H4l8 10z' },
-  { name: 'arrow-left', path: 'M2 12l10 8v-5h10V9H12V4L2 12z' },
-  { name: 'arrow-right', path: 'M22 12l-10-8v5H2v6h10v5l10-8z' },
-  // Символы
-  { name: 'check', path: 'M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17z' },
-  { name: 'cross', path: 'M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z' },
-  { name: 'plus', path: 'M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z' },
-  { name: 'minus', path: 'M19 13H5v-2h14v2z' },
-  { name: 'info', path: 'M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z' },
-  { name: 'warning', path: 'M1 21h22L12 2 1 21zm12-3h-2v-2h2v2zm0-4h-2v-4h2v4z' },
-  // Объекты
-  { name: 'cloud', path: 'M19.35 10.04C18.67 6.59 15.64 4 12 4 9.11 4 6.6 5.64 5.35 8.04 2.34 8.36 0 10.91 0 14c0 3.31 2.69 6 6 6h13c2.76 0 5-2.24 5-5 0-2.64-2.05-4.78-4.65-4.96z' },
-  { name: 'sun', path: 'M12 7c-2.76 0-5 2.24-5 5s2.24 5 5 5 5-2.24 5-5-2.24-5-5-5zM2 13h2c.55 0 1-.45 1-1s-.45-1-1-1H2c-.55 0-1 .45-1 1s.45 1 1 1zm18 0h2c.55 0 1-.45 1-1s-.45-1-1-1h-2c-.55 0-1 .45-1 1s.45 1 1 1zM11 2v2c0 .55.45 1 1 1s1-.45 1-1V2c0-.55-.45-1-1-1s-1 .45-1 1zm0 18v2c0 .55.45 1 1 1s1-.45 1-1v-2c0-.55-.45-1-1-1s-1 .45-1 1z' },
-  { name: 'moon', path: 'M12 3c-4.97 0-9 4.03-9 9s4.03 9 9 9c.83 0 1.5-.67 1.5-1.5 0-.39-.15-.74-.39-1.01-.23-.26-.38-.61-.38-.99 0-.83.67-1.5 1.5-1.5H16c2.76 0 5-2.24 5-5 0-4.42-4.03-8-9-8zm-5.5 9c-.83 0-1.5-.67-1.5-1.5S5.67 9 6.5 9 8 9.67 8 10.5 7.33 12 6.5 12zm3-4C8.67 8 8 7.33 8 6.5S8.67 5 9.5 5s1.5.67 1.5 1.5S10.33 8 9.5 8zm5 0c-.83 0-1.5-.67-1.5-1.5S13.67 5 14.5 5s1.5.67 1.5 1.5S15.33 8 14.5 8zm3 4c-.83 0-1.5-.67-1.5-1.5S16.67 9 17.5 9s1.5.67 1.5 1.5-.67 1.5-1.5 1.5z' },
-  { name: 'drop', path: 'M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z' },
-  { name: 'bolt', path: 'M11 21h-1l1-7H7.5c-.58 0-.57-.32-.38-.66.19-.34.05-.08.07-.12C8.48 10.94 10.42 7.54 13 3h1l-1 7h3.5c.49 0 .56.33.47.51l-.07.15C12.96 17.55 11 21 11 21z' },
-  { name: 'crown', path: 'M5 16L3 5l5.5 5L12 4l3.5 6L21 5l-2 11H5zm14 3c0 .6-.4 1-1 1H6c-.6 0-1-.4-1-1v-1h14v1z' },
-  // Иконки техники
-  { name: 'camera', path: 'M12 15.2a3.2 3.2 0 1 0 0-6.4 3.2 3.2 0 0 0 0 6.4zM9 2L7.17 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2h-3.17L15 2H9z' },
-  { name: 'phone', path: 'M17 1.01L7 1c-1.1 0-2 .9-2 2v18c0 1.1.9 2 2 2h10c1.1 0 2-.9 2-2V3c0-1.1-.9-1.99-2-1.99zM17 19H7V5h10v14z' },
-  { name: 'tv', path: 'M21 3H3c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h5v2h8v-2h5c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 14H3V5h18v12z' },
-  { name: 'music', path: 'M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z' },
+  { path: 'M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z' },
+  { path: 'M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z' },
+  { path: 'M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20z' },
+  { path: 'M3 3h18v18H3z' },
+  { path: 'M12 2L2 22h20L12 2z' },
+  { path: 'M12 2l10 10-10 10L2 12z' },
+  { path: 'M12 2l8.66 5v10L12 22l-8.66-5V7z' },
+  { path: 'M12 2l9.5 6.9-3.6 11.1H6.1L2.5 8.9z' },
+  { path: 'M8 2h8l6 6v8l-6 6H8l-6-6V8z' },
+  { path: 'M12 2l-8 10h5v10h6V12h5L12 2z' },
+  { path: 'M12 22l8-10h-5V2H9v10H4l8 10z' },
+  { path: 'M2 12l10 8v-5h10V9H12V4L2 12z' },
+  { path: 'M22 12l-10-8v5H2v6h10v5l10-8z' },
+  { path: 'M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17z' },
+  { path: 'M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z' },
+  { path: 'M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z' },
+  { path: 'M19 13H5v-2h14v2z' },
+  { path: 'M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z' },
+  { path: 'M1 21h22L12 2 1 21zm12-3h-2v-2h2v2zm0-4h-2v-4h2v4z' },
+  { path: 'M19.35 10.04C18.67 6.59 15.64 4 12 4 9.11 4 6.6 5.64 5.35 8.04 2.34 8.36 0 10.91 0 14c0 3.31 2.69 6 6 6h13c2.76 0 5-2.24 5-5 0-2.64-2.05-4.78-4.65-4.96z' },
+  { path: 'M12 7c-2.76 0-5 2.24-5 5s2.24 5 5 5 5-2.24 5-5-2.24-5-5-5zM2 13h2c.55 0 1-.45 1-1s-.45-1-1-1H2c-.55 0-1 .45-1 1s.45 1 1 1zm18 0h2c.55 0 1-.45 1-1s-.45-1-1-1h-2c-.55 0-1 .45-1 1s.45 1 1 1zM11 2v2c0 .55.45 1 1 1s1-.45 1-1V2c0-.55-.45-1-1-1s-1 .45-1 1zm0 18v2c0 .55.45 1 1 1s1-.45 1-1v-2c0-.55-.45-1-1-1s-1 .45-1 1z' },
+  { path: 'M12 3c-4.97 0-9 4.03-9 9s4.03 9 9 9c.83 0 1.5-.67 1.5-1.5 0-.39-.15-.74-.39-1.01-.23-.26-.38-.61-.38-.99 0-.83.67-1.5 1.5-1.5H16c2.76 0 5-2.24 5-5 0-4.42-4.03-8-9-8zm-5.5 9c-.83 0-1.5-.67-1.5-1.5S5.67 9 6.5 9 8 9.67 8 10.5 7.33 12 6.5 12zm3-4C8.67 8 8 7.33 8 6.5S8.67 5 9.5 5s1.5.67 1.5 1.5S10.33 8 9.5 8zm5 0c-.83 0-1.5-.67-1.5-1.5S13.67 5 14.5 5s1.5.67 1.5 1.5S15.33 8 14.5 8zm3 4c-.83 0-1.5-.67-1.5-1.5S16.67 9 17.5 9s1.5.67 1.5 1.5-.67 1.5-1.5 1.5z' },
+  { path: 'M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z' },
+  { path: 'M11 21h-1l1-7H7.5c-.58 0-.57-.32-.38-.66.19-.34.05-.08.07-.12C8.48 10.94 10.42 7.54 13 3h1l-1 7h3.5c.49 0 .56.33.47.51l-.07.15C12.96 17.55 11 21 11 21z' },
+  { path: 'M5 16L3 5l5.5 5L12 4l3.5 6L21 5l-2 11H5zm14 3c0 .6-.4 1-1 1H6c-.6 0-1-.4-1-1v-1h14v1z' },
+  { path: 'M12 15.2a3.2 3.2 0 1 0 0-6.4 3.2 3.2 0 0 0 0 6.4zM9 2L7.17 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2h-3.17L15 2H9z' },
+  { path: 'M17 1.01L7 1c-1.1 0-2 .9-2 2v18c0 1.1.9 2 2 2h10c1.1 0 2-.9 2-2V3c0-1.1-.9-1.99-2-1.99zM17 19H7V5h10v14z' },
+  { path: 'M21 3H3c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h5v2h8v-2h5c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 14H3V5h18v12z' },
+  { path: 'M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z' },
 ];
 
-// Генерируем 100 фигур (дублируем список до 100, но уже с разными именами и путями)
 const FULL_SHAPES = Array(100).fill(null).map((_, i) => SHAPES_LIBRARY[i % SHAPES_LIBRARY.length]);
 
 const BACKGROUNDS = [
-  { value: '#ffffff' }, { value: '#f0f0f0' }, { value: '#111111' },
-  { value: 'linear-gradient(135deg, #f6d365 0%, #fda085 100%)' },
-  { value: 'linear-gradient(135deg, #a18cd1 0%, #fbc2eb 100%)' },
-  { value: 'linear-gradient(135deg, #84fab0 0%, #8fd3f4 100%)' },
+  '#ffffff', '#f0f0f0', '#111111', '#ff0000', '#00ff00', '#0000ff', '#ffff00', '#ff00ff'
 ];
 
 function CanvasEditor({ onBack }) {
@@ -97,6 +83,7 @@ function CanvasEditor({ onBack }) {
   
   const stageRef = useRef(null);
   const fileInputRef = useRef(null);
+  const trRef = useRef(null);
 
   useEffect(() => {
     const loadProject = async () => {
@@ -124,6 +111,17 @@ function CanvasEditor({ onBack }) {
     }, 2000);
     return () => clearTimeout(saveTimeout);
   }, [elements, lines, bgColor]);
+
+  // Привязка трансформера
+  useEffect(() => {
+    if (selectedId && trRef.current) {
+      const node = stageRef.current.findOne('#' + selectedId);
+      if (node) {
+        trRef.current.nodes([node]);
+        trRef.current.getLayer().batchDraw();
+      }
+    }
+  }, [selectedId]);
 
   const addText = (font) => {
     setElements([...elements, { 
@@ -213,7 +211,6 @@ function CanvasEditor({ onBack }) {
     setElements(elements.map(el => el.id === selectedId ? { ...el, [key]: value } : el));
   };
 
-  // Исправленная логика слоев
   const moveLayer = (direction) => {
     if (!selectedId) return;
     const index = elements.findIndex(el => el.id === selectedId);
@@ -281,6 +278,12 @@ function CanvasEditor({ onBack }) {
                   onClick: () => setSelectedId(el.id),
                   onTap: () => setSelectedId(el.id),
                   onDragEnd: (e) => setElements(elements.map(item => item.id === el.id ? { ...item, x: e.target.x(), y: e.target.y() } : item)),
+                  onTransformEnd: (e) => {
+                    const node = e.target;
+                    const scaleX = node.scaleX(); const scaleY = node.scaleY();
+                    node.scaleX(1); node.scaleY(1);
+                    setElements(elements.map(item => item.id === el.id ? { ...item, x: node.x(), y: node.y(), width: Math.max(5, node.width() * scaleX), height: Math.max(5, node.height() * scaleY) } : item));
+                  }
                 };
 
                 if (el.type === 'image') {
@@ -300,6 +303,7 @@ function CanvasEditor({ onBack }) {
                 }
                 return null;
               })}
+              {selectedId && <Transformer ref={trRef} boundBoxFunc={(oldBox, newBox) => (newBox.width < 5 || newBox.height < 5) ? oldBox : newBox} />}
             </Layer>
           </Stage>
         </div>
@@ -351,12 +355,12 @@ function CanvasEditor({ onBack }) {
       {activePanel === 'color' && (
         <div style={{ position: 'absolute', bottom: '80px', left: '10px', right: '10px', height: '150px', backgroundColor: '#fff', borderRadius: '10px', padding: '15px', zIndex: 100, boxShadow: '0 -4px 15px rgba(0,0,0,0.1)', overflowY: 'auto' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '10px' }}>
-            <h4 style={{margin: 0}}>Фоны</h4>
+            <h4 style={{margin: 0}}>Цвета</h4>
             <button onClick={() => setActivePanel(null)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontWeight: 'bold' }}>X</button>
           </div>
           <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
              {BACKGROUNDS.map((bg, i) => (
-               <div key={i} onClick={() => { setBgColor(bg.value); setActivePanel(null); }} style={{ width: '50px', height: '50px', background: bg.value, borderRadius: '8px', border: '1px solid #ccc', cursor: 'pointer' }} />
+               <div key={i} onClick={() => { setBgColor(bg); setActivePanel(null); }} style={{ width: '50px', height: '50px', background: bg, borderRadius: '8px', border: '1px solid #ccc', cursor: 'pointer' }} />
              ))}
           </div>
         </div>
@@ -375,126 +379,4 @@ function CanvasEditor({ onBack }) {
       )}
 
       {activePanel === 'shapes' && (
-        <div style={{ position: 'absolute', bottom: '80px', left: '10px', right: '10px', height: '200px', backgroundColor: '#fff', borderRadius: '10px', padding: '15px', overflowY: 'auto', zIndex: 100, boxShadow: '0 -4px 15px rgba(0,0,0,0.1)' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '10px' }}>
-            <h4 style={{margin: 0}}>100 Фигур</h4>
-            <button onClick={() => setActivePanel(null)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontWeight: 'bold' }}>X</button>
-          </div>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(50px, 1fr))', gap: '10px' }}>
-            {FULL_SHAPES.map((s, i) => (
-              <div key={i} onClick={() => addShape(s.path)} style={{ height: '50px', backgroundColor: '#f5f5f5', borderRadius: '5px', display: 'flex', justifyContent: 'center', alignItems: 'center', cursor: 'pointer' }}>
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="#333">
-                   <path d={s.path} />
-                </svg>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-
-      <div style={{ height: '80px', backgroundColor: '#fff', display: 'flex', alignItems: 'center', overflowX: 'auto', borderTop: '1px solid #eee', padding: '0 10px', flexShrink: 0, gap: '20px' }}>
-        <div onClick={() => { setActivePanel('text'); setSelectedId(null); }} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', minWidth: '60px', cursor: 'pointer', color: activePanel === 'text' ? '#d900a8' : '#333' }}>
-          <Icons.Text /> <span style={{ fontSize: '11px', marginTop: '5px' }}>Текст</span>
-        </div>
-        <div onClick={() => { setActivePanel('shapes'); setSelectedId(null); }} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', minWidth: '60px', cursor: 'pointer', color: activePanel === 'shapes' ? '#d900a8' : '#333' }}>
-          <Icons.Shape /> <span style={{ fontSize: '11px', marginTop: '5px' }}>Фигуры</span>
-        </div>
-        <div onClick={() => { setActivePanel('color'); setSelectedId(null); }} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', minWidth: '60px', cursor: 'pointer', color: activePanel === 'color' ? '#d900a8' : '#333' }}>
-          <Icons.Color /> <span style={{ fontSize: '11px', marginTop: '5px' }}>Фон</span>
-        </div>
-        <div onClick={() => fileInputRef.current.click()} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', minWidth: '60px', cursor: 'pointer', color: '#333' }}>
-          <Icons.Image /> <span style={{ fontSize: '11px', marginTop: '5px' }}>Фото</span>
-        </div>
-        <div onClick={() => { setTool('draw'); setActivePanel(null); setSelectedId(null); }} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', minWidth: '60px', cursor: 'pointer', color: tool === 'draw' ? '#d900a8' : '#333' }}>
-          <Icons.Draw /> <span style={{ fontSize: '11px', marginTop: '5px' }}>Рисовать</span>
-        </div>
-        <div onClick={clearDrawings} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', minWidth: '60px', cursor: 'pointer', color: '#333' }}>
-          <Icons.Eraser /> <span style={{ fontSize: '11px', marginTop: '5px' }}>Стереть</span>
-        </div>
-        <div onClick={() => { setShowGrid(!showGrid); setActivePanel(null); }} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', minWidth: '60px', cursor: 'pointer', color: showGrid ? '#d900a8' : '#333' }}>
-          <Icons.Grid /> <span style={{ fontSize: '11px', marginTop: '5px' }}>Сетка</span>
-        </div>
-        <div onClick={() => { setCanvasSize(canvasSize.width === 600 ? { width: 800, height: 600 } : { width: 600, height: 800 }); setActivePanel(null); }} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', minWidth: '60px', cursor: 'pointer', color: '#333' }}>
-          <Icons.Cut /> <span style={{ fontSize: '11px', marginTop: '5px' }}>Формат</span>
-        </div>
-      </div>
-      <input type="file" accept="image/*" ref={fileInputRef} onChange={handleImageUpload} style={{ display: 'none' }} />
-    </div>
-  );
-}
-
-export default function App() {
-  const [view, setView] = useState('dashboard');
-
-  if (view === 'editor') {
-    return <CanvasEditor onBack={() => setView('dashboard')} />;
-  }
-
-  const iconBox = { width: '70px', height: '70px', backgroundColor: 'white', borderRadius: '20px', boxShadow: '0 2px 10px rgba(0,0,0,0.03)', display: 'flex', justifyContent: 'center', alignItems: 'center', fontSize: '28px', marginBottom: '10px', color: '#d900a8', border: '1px solid #f0f0f0' };
-
-  return (
-    <div style={{ fontFamily: 'sans-serif', backgroundColor: '#ffffff', minHeight: '100vh', paddingBottom: '100px', color: '#111' }}>
-      
-      <header style={{ padding: '20px 30px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <h1 style={{ fontSize: '32px', fontWeight: 'bold', margin: 0, color: '#111' }}>Редактор</h1>
-        <div style={{ display: 'flex', gap: '20px', alignItems: 'center' }}>
-          <button style={{ border: '1px solid #ddd', background: 'white', padding: '8px 16px', borderRadius: '20px', cursor: 'pointer', fontWeight: 'bold' }}>Try PRO</button>
-          <span style={{ fontSize: '24px', cursor: 'pointer' }}>🔍</span>
-        </div>
-      </header>
-
-      <div style={{ padding: '0 30px', display: 'flex', gap: '30px', borderBottom: '1px solid #f0f0f0', paddingBottom: '10px', marginBottom: '30px', overflowX: 'auto' }}>
-        {['Фото', 'Видео', '✨ Agents', 'Шаблоны', 'Приложения', 'Рисовать'].map((tab, i) => (
-          <span key={tab} style={{ color: i === 0 ? '#d900a8' : '#555', borderBottom: i === 0 ? '2px solid #d900a8' : 'none', paddingBottom: '10px', fontWeight: 'bold', cursor: 'pointer', whiteSpace: 'nowrap' }}>{tab}</span>
-        ))}
-      </div>
-
-      <div style={{ padding: '0 30px', display: 'flex', gap: '20px', marginBottom: '40px', overflowX: 'auto' }}>
-         {['Убрать фон', 'Добавить т...', 'Удаление', 'ИИ Улучшить', 'Коллаж', 'Эффекты', 'Фристайл', 'Корректор'].map((tool, i) => (
-           <div key={i} onClick={() => setView('editor')} style={{ minWidth: '80px', textAlign: 'center', cursor: 'pointer' }}>
-             <div style={iconBox}>{['✂️', 'T', '🩹', '✨', '🖼️', '🎨', '🖌️', '🔧'][i]}</div>
-             <div style={{ fontSize: '12px', color: '#555', whiteSpace: 'nowrap' }}>{tool}</div>
-           </div>
-         ))}
-      </div>
-
-      <div style={{ padding: '0 30px', marginBottom: '40px' }}>
-        <h2 style={{ fontSize: '18px', marginBottom: '20px', color: '#111' }}>ИИ-инструменты</h2>
-        <div style={{ display: 'flex', gap: '20px', overflowX: 'auto', paddingBottom: '20px' }}>
-          <div onClick={() => setView('editor')} style={{ minWidth: '280px', height: '180px', borderRadius: '20px', backgroundImage: `url(https://images.unsplash.com/photo-1544005313-94ddf0286df2?q=80&w=400&auto=format&fit=crop)`, backgroundSize: 'cover', position: 'relative', cursor: 'pointer' }}>
-            <div style={{ position: 'absolute', bottom: '15px', left: '15px', background: 'rgba(255,255,255,0.9)', padding: '5px 10px', borderRadius: '10px', fontSize: '12px', fontWeight: 'bold' }}>ИИ-фон</div>
-          </div>
-          <div onClick={() => setView('editor')} style={{ minWidth: '280px', height: '180px', borderRadius: '20px', backgroundImage: `url(https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?q=80&w=400&auto=format&fit=crop)`, backgroundSize: 'cover', position: 'relative', cursor: 'pointer' }}>
-             <div style={{ position: 'absolute', bottom: '15px', left: '15px', background: 'rgba(255,255,255,0.9)', padding: '5px 10px', borderRadius: '10px', fontSize: '12px', fontWeight: 'bold' }}>Мои аватары</div>
-          </div>
-        </div>
-      </div>
-
-      <div style={{ padding: '0 30px', marginBottom: '40px' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-          <h2 style={{ fontSize: '18px', margin: 0, color: '#111' }}>Популярные фоны</h2>
-          <span style={{ color: '#d900a8', fontWeight: 'bold', fontSize: '14px', cursor: 'pointer' }}>See all</span>
-        </div>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: '20px' }}>
-          <div onClick={() => setView('editor')} style={{ cursor: 'pointer' }}>
-            <div style={{ height: '140px', borderRadius: '20px', border: '1px solid #ddd', backgroundImage: 'linear-gradient(45deg, #f5f5f5 25%, transparent 25%), linear-gradient(-45deg, #f5f5f5 25%, transparent 25%), linear-gradient(45deg, transparent 75%, #f5f5f5 75%), linear-gradient(-45deg, transparent 75%, #f5f5f5 75%)', backgroundSize: '20px 20px', backgroundColor: 'white' }}></div>
-            <div style={{ fontSize: '14px', marginTop: '10px', color: '#555' }}>Пустой</div>
-          </div>
-          <div onClick={() => setView('editor')} style={{ cursor: 'pointer' }}>
-            <div style={{ height: '140px', borderRadius: '20px', background: 'linear-gradient(135deg, #f6d365 0%, #fda085 100%)', display: 'flex', justifyContent: 'flex-end', alignItems: 'flex-end', padding: '15px' }}>
-               <div style={{ backgroundColor: 'rgba(0,0,0,0.3)', color: 'white', borderRadius: '50%', width: '30px', height: '30px', display: 'flex', justifyContent: 'center', alignItems: 'center', fontSize: '12px' }}>17</div>
-            </div>
-            <div style={{ fontSize: '14px', marginTop: '10px', color: '#555' }}>Цвет</div>
-          </div>
-        </div>
-      </div>
-
-      <div style={{ position: 'fixed', bottom: '30px', left: 0, right: 0, display: 'flex', justifyContent: 'center', zIndex: 100 }}>
-        <button onClick={() => setView('editor')} style={{ padding: '15px 30px', backgroundColor: '#c400a0', color: 'white', border: 'none', borderRadius: '30px', fontSize: '18px', fontWeight: 'bold', cursor: 'pointer', boxShadow: '0 10px 20px rgba(196, 0, 160, 0.3)' }}>
-          <span>+</span> Начни с фото или видео
-        </button>
-      </div>
-
-    </div>
-  );
-}
+        <div style={{ position: 'absolute', bottom: '80px', left: '10px', right: '10px', height: '200px', backgroundColor: '#fff', borderRadius:
