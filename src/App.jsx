@@ -2,9 +2,6 @@ import React, { useState, useRef, useEffect } from 'react';
 import { Stage, Layer, Rect, Text, Line, Image as KonvaImage, Transformer } from 'react-konva';
 import { createClient } from '@supabase/supabase-js';
 
-// ==========================================
-// КЛЮЧИ SUPABASE
-// ==========================================
 const SUPABASE_URL = 'https://iqvujenjffevijvtdvd.supabase.co'; 
 const SUPABASE_ANON_KEY = 'sb_publishable_Cbcd0LznpbNCIA6JwOskig_4SkcqVhL';
 const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
@@ -57,7 +54,6 @@ function CanvasEditor({ onBack }) {
   const stageRef = useRef(null);
   const fileInputRef = useRef(null);
 
-  // Загрузка из облака
   useEffect(() => {
     const loadProject = async () => {
       try {
@@ -72,7 +68,6 @@ function CanvasEditor({ onBack }) {
     loadProject();
   }, []);
 
-  // Сохранение в облако
   useEffect(() => {
     const saveTimeout = setTimeout(async () => {
       try {
@@ -87,7 +82,18 @@ function CanvasEditor({ onBack }) {
   }, [elements, lines, bgColor]);
 
   const addText = (font) => {
-    setElements([...elements, { id: Date.now().toString(), type: 'text', x: 50, y: 50, text: 'Текст', fontSize: 40, fill: '#111', fontFamily: font || 'Arial', strokeColor: '#000000', strokeWidth: 0 }]);
+    // Устанавливаем начальные значения для обводки
+    setElements([...elements, { 
+      id: Date.now().toString(), 
+      type: 'text', 
+      x: 50, y: 50, 
+      text: 'Ваш текст', 
+      fontSize: 40, 
+      fill: '#111', 
+      fontFamily: font || 'Arial',
+      strokeColor: '#000000',
+      strokeWidth: 0
+    }]);
     setActivePanel(null);
   };
 
@@ -156,7 +162,6 @@ function CanvasEditor({ onBack }) {
     setElements(elements.map(el => el.id === selectedId ? { ...el, [key]: value } : el));
   };
 
-  // Функция слоев
   const moveLayer = (direction) => {
     if (!selectedId) return;
     const index = elements.findIndex(el => el.id === selectedId);
