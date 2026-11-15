@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Stage, Layer, Rect, Text, Line, Image as KonvaImage } from 'react-konva';
 
-// --- ИКОНКИ (SVG, без внешних библиотек) ---
+// --- ИКОНКИ (SVG) ---
 const Icons = {
   Text: () => <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M4 7V4h16v3"/><path d="M9 20h6"/><path d="M12 4v16"/></svg>,
   Shape: () => <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>,
@@ -15,7 +15,7 @@ const Icons = {
   Download: () => <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>,
 };
 
-// --- ДАННЫЕ (100 шрифтов и 100 фигур) ---
+// --- БАЗА ДАННЫХ ---
 const FONTS = [
   'Arial', 'Times New Roman', 'Courier New', 'Georgia', 'Verdana', 'Trebuchet MS', 'Tahoma', 'Impact', 'Comic Sans MS', 'Palatino Linotype',
   'Lucida Sans Unicode', 'Garamond', 'Bookman Old Style', 'Arial Black', 'Helvetica', 'Geneva', 'Monaco', 'Optima', 'Futura', 'Baskerville',
@@ -29,19 +29,46 @@ const FONTS = [
   'Alex Brush', 'Tangerine', 'Arial Narrow', 'Lucida Console', 'Courier', 'Georgia', 'Times'
 ];
 
-// 100 фигур (комбинация типов для сетки)
-const SHAPES = ['square', 'circle', 'triangle', 'star', 'heart', 'diamond'];
+const SHAPES = ['square', 'circle', 'triangle', 'star', 'heart', 'diamond', 'cross', 'moon'];
 const FULL_SHAPES = Array(100).fill(null).map((_, i) => SHAPES[i % SHAPES.length]);
 
-// --- КОМПОНЕНТ РЕДАКТОРА ---
+const BACKGROUNDS = [
+  { type: 'color', value: '#ffffff' }, { type: 'color', value: '#f0f0f0' }, { type: 'color', value: '#111111' },
+  { type: 'gradient', value: 'linear-gradient(135deg, #f6d365 0%, #fda085 100%)' },
+  { type: 'gradient', value: 'linear-gradient(135deg, #a18cd1 0%, #fbc2eb 100%)' },
+  { type: 'gradient', value: 'linear-gradient(135deg, #84fab0 0%, #8fd3f4 100%)' },
+];
+
+// --- КОМПОНЕНТ КАРТИНКИ ---
+const LoadedImage = ({ src, ...props }) => {
+  const [image, setImage] = useState(null);
+  useEffect(() => {
+    const img = new window.Image();
+    img.src = src;
+    img.onload = () => setImage(img);
+  }, [src]);
+  return image ? <KonvaImage image={image} {...props} /> : null;
+};
+
 function CanvasEditor({ onBack }) {
-  const [elements, setElements] = useState([]);
+  // 1. ИНИЦИАЛИЗАЦИЯ ИЗ ПАМЯТИ
+  const [elements, setElements] = useState(() => {
+    const saved = localStorage.getItem('canvas_elements');
+    return saved ? JSON.parse(saved) : [];
+  });
+  
+  const [lines, setLines] = useState(() => {
+    const saved = localStorage.getItem('canvas_lines');
+    return saved ? JSON.parse(saved) : [];
+  });
+
+  const [bgColor, setBgColor] = useState(() => {
+    return localStorage.getItem('canvas_bg') || '#ffffff';
+  });
+
   const [selectedId, setSelectedId] = useState(null);
   const [tool, setTool] = useState('select');
-  const [lines, setLines] = useState([]);
   const isDrawing = useRef(false);
-  
-  const [bgColor, setBgColor] = useState('#ffffff');
   const [showGrid, setShowGrid] = useState(false);
   const [canvasSize, setCanvasSize] = useState({ width: 600, height: 800 });
   const [activePanel, setActivePanel] = useState(null);
@@ -49,7 +76,13 @@ function CanvasEditor({ onBack }) {
   const stageRef = useRef(null);
   const fileInputRef = useRef(null);
 
-  // --- ФУНКЦИИ ДОБАВЛЕНИЯ ---
+  // 2. АВТОСОХРАНЕНИЕ
+  useEffect(() => {
+    localStorage.setItem('canvas_elements', JSON.stringify(elements));
+    localStorage.setItem('canvas_lines', JSON.stringify(lines));
+    localStorage.setItem('canvas_bg', bgColor);
+  }, [elements, lines, bgColor]);
+
   const addText = (font) => {
     setElements([...elements, { id: Date.now().toString(), type: 'text', x: 50, y: 50, text: 'Ваш текст', fontSize: 40, fill: '#111', fontFamily: font || 'Arial' }]);
     setActivePanel(null);
@@ -67,14 +100,13 @@ function CanvasEditor({ onBack }) {
     reader.onload = (event) => {
       const img = new window.Image();
       img.src = event.target.result;
-      img.onload = () => setElements([...elements, { id: Date.now().toString(), type: 'image', x: 50, y: 50, image: img, src: event.target.result, width: 200, height: (img.height * 200) / img.width }]);
+      img.onload = () => setElements([...elements, { id: Date.now().toString(), type: 'image', x: 50, y: 50, src: event.target.result, width: 200, height: (img.height * 200) / img.width }]);
     };
     reader.readAsDataURL(file);
     e.target.value = null;
     setActivePanel(null);
   };
 
-  // --- РИСОВАНИЕ ---
   const handleMouseDown = (e) => {
     if (tool === 'draw') {
       isDrawing.current = true;
@@ -98,7 +130,6 @@ function CanvasEditor({ onBack }) {
   };
 
   const handleMouseUp = () => { isDrawing.current = false; };
-
   const clearDrawings = () => { setLines([]); setTool('select'); setActivePanel(null); };
 
   const downloadImage = () => {
@@ -133,6 +164,8 @@ function CanvasEditor({ onBack }) {
       case 'triangle': return <Line {...props} points={[cx, y, x + width, y + height, x, y + height]} closed fill={fill} />;
       case 'star': return <Text {...props} text="★" fontSize={width} fill={fill} x={x} y={y} />;
       case 'heart': return <Text {...props} text="♥" fontSize={width} fill={fill} x={x} y={y} />;
+      case 'moon': return <Text {...props} text="☾" fontSize={width} fill={fill} x={x} y={y} />;
+      case 'cross': return <Text {...props} text="✚" fontSize={width} fill={fill} x={x} y={y} />;
       default: return <Rect {...props} />;
     }
   };
@@ -142,14 +175,12 @@ function CanvasEditor({ onBack }) {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', width: '100vw', height: '100vh', backgroundColor: '#f9f9f9', overflow: 'hidden', fontFamily: 'sans-serif' }}>
       
-      {/* ВЕРХНЯЯ ПАНЕЛЬ РЕДАКТОРА */}
       <div style={{ height: '60px', backgroundColor: '#fff', display: 'flex', alignItems: 'center', padding: '0 20px', justifyContent: 'space-between', borderBottom: '1px solid #eee', flexShrink: 0 }}>
         <button onClick={onBack} style={{ background: 'none', border: 'none', color: '#111', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '5px', fontWeight: 'bold' }}><Icons.Back /> Назад</button>
         <div style={{ fontWeight: 'bold' }}>Редактор</div>
         <button onClick={downloadImage} style={{ background: '#d900a8', color: '#fff', border: 'none', padding: '8px 15px', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '5px' }}><Icons.Download /> Скачать</button>
       </div>
 
-      {/* ХОЛСТ */}
       <div style={{ flex: 1, display: 'flex', justifyContent: 'center', alignItems: 'center', overflow: 'auto', padding: '20px', backgroundColor: '#e0e0e0' }}>
         <div style={{ boxShadow: '0 4px 20px rgba(0,0,0,0.1)', backgroundColor: bgColor }}>
           <Stage 
@@ -170,8 +201,7 @@ function CanvasEditor({ onBack }) {
               {elements.map((el) => {
                 const isSelected = el.id === selectedId;
                 if (el.type === 'image') {
-                  const img = new window.Image(); img.src = el.src;
-                  return <KonvaImage key={el.id} image={img} {...el} draggable onClick={() => setSelectedId(el.id)} onTap={() => setSelectedId(el.id)} stroke={isSelected ? '#d900a8' : undefined} strokeWidth={isSelected ? 2 : 0} />;
+                  return <LoadedImage key={el.id} src={el.src} {...el} draggable onClick={() => setSelectedId(el.id)} onTap={() => setSelectedId(el.id)} stroke={isSelected ? '#d900a8' : undefined} strokeWidth={isSelected ? 2 : 0} />;
                 }
                 if (el.type === 'text') {
                   return <Text key={el.id} {...el} draggable onClick={() => setSelectedId(el.id)} onTap={() => setSelectedId(el.id)} stroke={isSelected ? '#d900a8' : undefined} strokeWidth={isSelected ? 1 : 0} />;
@@ -188,7 +218,7 @@ function CanvasEditor({ onBack }) {
         </div>
       </div>
 
-      {/* ПАНЕЛЬ РЕДАКТИРОВАНИЯ ВЫБРАННОГО ЭЛЕМЕНТА */}
+      {/* ПАНЕЛЬ РЕДАКТИРОВАНИЯ */}
       {selectedElement && (
         <div style={{ position: 'absolute', bottom: '90px', left: '10px', right: '10px', backgroundColor: '#fff', padding: '15px', borderRadius: '15px', boxShadow: '0 -4px 20px rgba(0,0,0,0.15)', zIndex: 200, display: 'flex', flexDirection: 'column', gap: '10px' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -212,7 +242,34 @@ function CanvasEditor({ onBack }) {
         </div>
       )}
 
-      {/* ВСПЛЫВАЮЩИЕ ПАНЕЛИ (Шрифты и Фигуры) */}
+      {/* ПАНЕЛЬ ЦВЕТА / ФОНА */}
+      {activePanel === 'color' && (
+        <div style={{ position: 'absolute', bottom: '80px', left: '10px', right: '10px', height: '150px', backgroundColor: '#fff', borderRadius: '10px', padding: '15px', zIndex: 100, boxShadow: '0 -4px 15px rgba(0,0,0,0.1)', overflowY: 'auto' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '10px' }}>
+            <h4 style={{margin: 0}}>Фоны</h4>
+            <button onClick={() => setActivePanel(null)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontWeight: 'bold' }}>X</button>
+          </div>
+          
+          <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+             {BACKGROUNDS.map((bg, i) => (
+               <div key={i} onClick={() => { setBgColor(bg.value); setActivePanel(null); }} style={{ width: '50px', height: '50px', background: bg.value, borderRadius: '8px', border: '1px solid #ccc', cursor: 'pointer' }} />
+             ))}
+          </div>
+
+          {selectedId && (
+             <>
+               <h4 style={{margin: '15px 0 10px 0'}}>Цвет элемента</h4>
+               <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+                 {['#000000', '#ffffff', '#ff0000', '#00ff00', '#0000ff', '#ffff00', '#ff00ff', '#00ffff'].map(c => (
+                    <div key={c} onClick={() => updateSelected('fill', c)} style={{ width: '40px', height: '40px', backgroundColor: c, border: '1px solid #ccc', borderRadius: '5px', cursor: 'pointer' }} />
+                 ))}
+               </div>
+             </>
+          )}
+        </div>
+      )}
+
+      {/* ПАНЕЛЬ ШРИФТОВ */}
       {activePanel === 'text' && (
         <div style={{ position: 'absolute', bottom: '80px', left: '10px', right: '10px', height: '200px', backgroundColor: '#fff', borderRadius: '10px', padding: '15px', overflowY: 'auto', zIndex: 100, boxShadow: '0 -4px 15px rgba(0,0,0,0.1)' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '10px' }}>
@@ -225,6 +282,7 @@ function CanvasEditor({ onBack }) {
         </div>
       )}
 
+      {/* ПАНЕЛЬ ФИГУР */}
       {activePanel === 'shapes' && (
         <div style={{ position: 'absolute', bottom: '80px', left: '10px', right: '10px', height: '200px', backgroundColor: '#fff', borderRadius: '10px', padding: '15px', overflowY: 'auto', zIndex: 100, boxShadow: '0 -4px 15px rgba(0,0,0,0.1)' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '10px' }}>
@@ -232,12 +290,12 @@ function CanvasEditor({ onBack }) {
             <button onClick={() => setActivePanel(null)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontWeight: 'bold' }}>X</button>
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(50px, 1fr))', gap: '10px' }}>
-            {FULL_SHAPES.map((s, i) => <div key={i} onClick={() => addShape(s)} style={{ height: '50px', backgroundColor: '#f5f5f5', borderRadius: '5px', display: 'flex', justifyContent: 'center', alignItems: 'center', fontSize: '24px', cursor: 'pointer' }}>{s === 'star' ? '★' : s === 'heart' ? '♥' : s === 'circle' ? '●' : s === 'triangle' ? '▲' : '■'}</div>)}
+            {FULL_SHAPES.map((s, i) => <div key={i} onClick={() => addShape(s)} style={{ height: '50px', backgroundColor: '#f5f5f5', borderRadius: '5px', display: 'flex', justifyContent: 'center', alignItems: 'center', fontSize: '24px', cursor: 'pointer' }}>{s === 'star' ? '★' : s === 'heart' ? '♥' : s === 'circle' ? '●' : s === 'triangle' ? '▲' : s === 'moon' ? '☾' : s === 'cross' ? '✚' : '■'}</div>)}
           </div>
         </div>
       )}
 
-      {/* НИЖНЯЯ ПАНЕЛЬ (С прокруткой) */}
+      {/* НИЖНЯЯ ПАНЕЛЬ */}
       <div style={{ height: '80px', backgroundColor: '#fff', display: 'flex', alignItems: 'center', overflowX: 'auto', borderTop: '1px solid #eee', padding: '0 10px', flexShrink: 0, gap: '20px' }}>
         
         <div onClick={() => { setActivePanel('text'); setSelectedId(null); }} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', minWidth: '60px', cursor: 'pointer', color: activePanel === 'text' ? '#d900a8' : '#333' }}>
@@ -249,7 +307,7 @@ function CanvasEditor({ onBack }) {
         </div>
 
         <div onClick={() => { setActivePanel('color'); setSelectedId(null); }} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', minWidth: '60px', cursor: 'pointer', color: activePanel === 'color' ? '#d900a8' : '#333' }}>
-          <Icons.Color /> <span style={{ fontSize: '11px', marginTop: '5px' }}>Цвет</span>
+          <Icons.Color /> <span style={{ fontSize: '11px', marginTop: '5px' }}>Фон</span>
         </div>
 
         <div onClick={() => fileInputRef.current.click()} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', minWidth: '60px', cursor: 'pointer', color: '#333' }}>
@@ -278,7 +336,6 @@ function CanvasEditor({ onBack }) {
   );
 }
 
-// --- ДАШБОРД ---
 export default function App() {
   const [view, setView] = useState('dashboard');
 
@@ -291,7 +348,6 @@ export default function App() {
   return (
     <div style={{ fontFamily: 'sans-serif', backgroundColor: '#ffffff', minHeight: '100vh', paddingBottom: '100px', color: '#111' }}>
       
-      {/* ШАПКА */}
       <header style={{ padding: '20px 30px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <h1 style={{ fontSize: '32px', fontWeight: 'bold', margin: 0, color: '#111' }}>Редактор</h1>
         <div style={{ display: 'flex', gap: '20px', alignItems: 'center' }}>
@@ -300,14 +356,12 @@ export default function App() {
         </div>
       </header>
 
-      {/* ВКЛАДКИ */}
       <div style={{ padding: '0 30px', display: 'flex', gap: '30px', borderBottom: '1px solid #f0f0f0', paddingBottom: '10px', marginBottom: '30px', overflowX: 'auto' }}>
         {['Фото', 'Видео', '✨ Agents', 'Шаблоны', 'Приложения', 'Рисовать'].map((tab, i) => (
           <span key={tab} style={{ color: i === 0 ? '#d900a8' : '#555', borderBottom: i === 0 ? '2px solid #d900a8' : 'none', paddingBottom: '10px', fontWeight: 'bold', cursor: 'pointer', whiteSpace: 'nowrap' }}>{tab}</span>
         ))}
       </div>
 
-      {/* ИНСТРУМЕНТЫ */}
       <div style={{ padding: '0 30px', display: 'flex', gap: '20px', marginBottom: '40px', overflowX: 'auto' }}>
          {['Убрать фон', 'Добавить т...', 'Удаление', 'ИИ Улучшить', 'Коллаж', 'Эффекты', 'Фристайл', 'Корректор'].map((tool, i) => (
            <div key={i} onClick={() => setView('editor')} style={{ minWidth: '80px', textAlign: 'center', cursor: 'pointer' }}>
@@ -317,46 +371,10 @@ export default function App() {
          ))}
       </div>
 
-      {/* ИИ-ИНСТРУМЕНТЫ */}
       <div style={{ padding: '0 30px', marginBottom: '40px' }}>
         <h2 style={{ fontSize: '18px', marginBottom: '20px', color: '#111' }}>ИИ-инструменты</h2>
         <div style={{ display: 'flex', gap: '20px', overflowX: 'auto', paddingBottom: '20px' }}>
           <div onClick={() => setView('editor')} style={{ minWidth: '280px', height: '180px', borderRadius: '20px', backgroundImage: `url(https://images.unsplash.com/photo-1544005313-94ddf0286df2?q=80&w=400&auto=format&fit=crop)`, backgroundSize: 'cover', position: 'relative', cursor: 'pointer' }}>
             <div style={{ position: 'absolute', bottom: '15px', left: '15px', background: 'rgba(255,255,255,0.9)', padding: '5px 10px', borderRadius: '10px', fontSize: '12px', fontWeight: 'bold' }}>ИИ-фон</div>
           </div>
-          <div onClick={() => setView('editor')} style={{ minWidth: '280px', height: '180px', borderRadius: '20px', backgroundImage: `url(https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?q=80&w=400&auto=format&fit=crop)`, backgroundSize: 'cover', position: 'relative', cursor: 'pointer' }}>
-             <div style={{ position: 'absolute', bottom: '15px', left: '15px', background: 'rgba(255,255,255,0.9)', padding: '5px 10px', borderRadius: '10px', fontSize: '12px', fontWeight: 'bold' }}>Мои аватары</div>
-          </div>
-        </div>
-      </div>
-
-      {/* ПОПУЛЯРНЫЕ ФОНЫ */}
-      <div style={{ padding: '0 30px', marginBottom: '40px' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-          <h2 style={{ fontSize: '18px', margin: 0, color: '#111' }}>Популярные фоны</h2>
-          <span style={{ color: '#d900a8', fontWeight: 'bold', fontSize: '14px', cursor: 'pointer' }}>See all</span>
-        </div>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: '20px' }}>
-          <div onClick={() => setView('editor')} style={{ cursor: 'pointer' }}>
-            <div style={{ height: '140px', borderRadius: '20px', border: '1px solid #ddd', backgroundImage: 'linear-gradient(45deg, #f5f5f5 25%, transparent 25%), linear-gradient(-45deg, #f5f5f5 25%, transparent 25%), linear-gradient(45deg, transparent 75%, #f5f5f5 75%), linear-gradient(-45deg, transparent 75%, #f5f5f5 75%)', backgroundSize: '20px 20px', backgroundColor: 'white' }}></div>
-            <div style={{ fontSize: '14px', marginTop: '10px', color: '#555' }}>Пустой</div>
-          </div>
-          <div onClick={() => setView('editor')} style={{ cursor: 'pointer' }}>
-            <div style={{ height: '140px', borderRadius: '20px', background: 'linear-gradient(135deg, #f6d365 0%, #fda085 100%)', display: 'flex', justifyContent: 'flex-end', alignItems: 'flex-end', padding: '15px' }}>
-               <div style={{ backgroundColor: 'rgba(0,0,0,0.3)', color: 'white', borderRadius: '50%', width: '30px', height: '30px', display: 'flex', justifyContent: 'center', alignItems: 'center', fontSize: '12px' }}>17</div>
-            </div>
-            <div style={{ fontSize: '14px', marginTop: '10px', color: '#555' }}>Цвет</div>
-          </div>
-        </div>
-      </div>
-
-      {/* ПЛАВАЮЩАЯ КНОПКА */}
-      <div style={{ position: 'fixed', bottom: '30px', left: 0, right: 0, display: 'flex', justifyContent: 'center', zIndex: 100 }}>
-        <button onClick={() => setView('editor')} style={{ padding: '15px 30px', backgroundColor: '#c400a0', color: 'white', border: 'none', borderRadius: '30px', fontSize: '18px', fontWeight: 'bold', cursor: 'pointer', boxShadow: '0 10px 20px rgba(196, 0, 160, 0.3)' }}>
-          <span>+</span> Начни с фото или видео
-        </button>
-      </div>
-
-    </div>
-  );
-}
+          <div onClick={() => setView('editor')} style={{ minWidth: '280px', height: '180px', borderRadius: '20px', backgroundImage: `url(https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?q=80&w=400&auto=format&fit=crop)`, backgroundSize: 'cover', position: 'relative',
