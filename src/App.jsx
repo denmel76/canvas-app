@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Stage, Layer, Rect, Text, Line, Image as KonvaImage } from 'react-konva';
+import { Stage, Layer, Rect, Text, Line, Image as KonvaImage, Transformer } from 'react-konva';
 
 // --- ИКОНКИ (SVG) ---
 const Icons = {
@@ -13,6 +13,7 @@ const Icons = {
   Cut: () => <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M6 3v12"/><path d="M18 9v12"/><path d="M6 12h12"/></svg>,
   Back: () => <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>,
   Download: () => <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>,
+  Layers: () => <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 12 12 17 22 12"/><polyline points="2 17 12 22 22 17"/></svg>,
 };
 
 // --- БАЗА ДАННЫХ ---
@@ -39,19 +40,41 @@ const BACKGROUNDS = [
   { type: 'gradient', value: 'linear-gradient(135deg, #84fab0 0%, #8fd3f4 100%)' },
 ];
 
-// --- КОМПОНЕНТ КАРТИНКИ ---
-const LoadedImage = ({ src, ...props }) => {
-  const [image, setImage] = useState(null);
+// --- КОМПОНЕНТ КАРТИНКИ С ТРАНСФОРМАЦИЕЙ ---
+const URLImage = ({ image, isSelected, onSelect, onChange, ...props }) => {
+  const shapeRef = useRef();
+  const trRef = useRef();
+
   useEffect(() => {
-    const img = new window.Image();
-    img.src = src;
-    img.onload = () => setImage(img);
-  }, [src]);
-  return image ? <KonvaImage image={image} {...props} /> : null;
+    if (isSelected) {
+      trRef.current.nodes([shapeRef.current]);
+      trRef.current.getLayer().batchDraw();
+    }
+  }, [isSelected]);
+
+  return (
+    <React.Fragment>
+      <KonvaImage
+        image={image}
+        onClick={onSelect}
+        onTap={onSelect}
+        ref={shapeRef}
+        {...props}
+        draggable
+        onDragEnd={(e) => onChange({ ...props, x: e.target.x(), y: e.target.y() })}
+        onTransformEnd={(e) => {
+          const node = shapeRef.current;
+          const scaleX = node.scaleX(); const scaleY = node.scaleY();
+          node.scaleX(1); node.scaleY(1);
+          onChange({ ...props, x: node.x(), y: node.y(), width: Math.max(5, node.width() * scaleX), height: Math.max(5, node.height() * scaleY) });
+        }}
+      />
+      {isSelected && <Transformer ref={trRef} boundBoxFunc={(oldBox, newBox) => (newBox.width < 5 || newBox.height < 5) ? oldBox : newBox} />}
+    </React.Fragment>
+  );
 };
 
 function CanvasEditor({ onBack }) {
-  // 1. ИНИЦИАЛИЗАЦИЯ ИЗ ПАМЯТИ
   const [elements, setElements] = useState(() => {
     const saved = localStorage.getItem('canvas_elements');
     return saved ? JSON.parse(saved) : [];
@@ -62,9 +85,7 @@ function CanvasEditor({ onBack }) {
     return saved ? JSON.parse(saved) : [];
   });
 
-  const [bgColor, setBgColor] = useState(() => {
-    return localStorage.getItem('canvas_bg') || '#ffffff';
-  });
+  const [bgColor, setBgColor] = useState(() => localStorage.getItem('canvas_bg') || '#ffffff');
 
   const [selectedId, setSelectedId] = useState(null);
   const [tool, setTool] = useState('select');
@@ -75,13 +96,24 @@ function CanvasEditor({ onBack }) {
   
   const stageRef = useRef(null);
   const fileInputRef = useRef(null);
+  const trRef = useRef(null);
 
-  // 2. АВТОСОХРАНЕНИЕ
   useEffect(() => {
     localStorage.setItem('canvas_elements', JSON.stringify(elements));
     localStorage.setItem('canvas_lines', JSON.stringify(lines));
     localStorage.setItem('canvas_bg', bgColor);
   }, [elements, lines, bgColor]);
+
+  // Привязка трансформера
+  useEffect(() => {
+    if (selectedId && trRef.current) {
+      const node = stageRef.current.findOne('#' + selectedId);
+      if (node) {
+        trRef.current.nodes([node]);
+        trRef.current.getLayer().batchDraw();
+      }
+    }
+  }, [selectedId]);
 
   const addText = (font) => {
     setElements([...elements, { id: Date.now().toString(), type: 'text', x: 50, y: 50, text: 'Ваш текст', fontSize: 40, fill: '#111', fontFamily: font || 'Arial' }]);
@@ -100,7 +132,7 @@ function CanvasEditor({ onBack }) {
     reader.onload = (event) => {
       const img = new window.Image();
       img.src = event.target.result;
-      img.onload = () => setElements([...elements, { id: Date.now().toString(), type: 'image', x: 50, y: 50, src: event.target.result, width: 200, height: (img.height * 200) / img.width }]);
+      img.onload = () => setElements([...elements, { id: Date.now().toString(), type: 'image', x: 50, y: 50, image: img, src: event.target.result, width: 200, height: (img.height * 200) / img.width }]);
     };
     reader.readAsDataURL(file);
     e.target.value = null;
@@ -198,21 +230,32 @@ function CanvasEditor({ onBack }) {
                 </React.Fragment>
               ))}
               {lines.map((line, i) => <Line key={i} points={line.points} stroke="#111" strokeWidth={3} tension={0.5} lineCap="round" lineJoin="round" />)}
+              
               {elements.map((el) => {
                 const isSelected = el.id === selectedId;
+                const commonProps = {
+                  id: el.id,
+                  draggable: true,
+                  onClick: () => setSelectedId(el.id),
+                  onTap: () => setSelectedId(el.id),
+                  onDragEnd: (e) => setElements(elements.map(item => item.id === el.id ? { ...item, x: e.target.x(), y: e.target.y() } : item)),
+                };
+
                 if (el.type === 'image') {
-                  return <LoadedImage key={el.id} src={el.src} {...el} draggable onClick={() => setSelectedId(el.id)} onTap={() => setSelectedId(el.id)} stroke={isSelected ? '#d900a8' : undefined} strokeWidth={isSelected ? 2 : 0} />;
+                  const img = new window.Image(); img.src = el.src;
+                  return <URLImage key={el.id} image={img} src={el.src} {...el} {...commonProps} isSelected={isSelected} onSelect={() => setSelectedId(el.id)} onChange={(newAttrs) => setElements(elements.map(item => item.id === el.id ? { ...item, ...newAttrs } : item))} />;
                 }
                 if (el.type === 'text') {
-                  return <Text key={el.id} {...el} draggable onClick={() => setSelectedId(el.id)} onTap={() => setSelectedId(el.id)} stroke={isSelected ? '#d900a8' : undefined} strokeWidth={isSelected ? 1 : 0} />;
+                  return <Text key={el.id} {...el} {...commonProps} stroke={isSelected ? '#d900a8' : undefined} strokeWidth={isSelected ? 1 : 0} />;
                 }
                 if (el.type === 'shape') {
                   return React.cloneElement(renderShape(el.shapeType, el), {
-                    key: el.id, draggable: true, onClick: () => setSelectedId(el.id), onTap: () => setSelectedId(el.id), stroke: isSelected ? '#d900a8' : undefined, strokeWidth: isSelected ? 2 : 0
+                    key: el.id, ...commonProps, stroke: isSelected ? '#d900a8' : undefined, strokeWidth: isSelected ? 2 : 0
                   });
                 }
                 return null;
               })}
+              {selectedId && <Transformer ref={trRef} boundBoxFunc={(oldBox, newBox) => (newBox.width < 5 || newBox.height < 5) ? oldBox : newBox} />}
             </Layer>
           </Stage>
         </div>
@@ -237,7 +280,7 @@ function CanvasEditor({ onBack }) {
           )}
 
           {(selectedElement.type === 'text' || selectedElement.type === 'shape') && (
-            <input type="color" value={selectedElement.fill} onChange={(e) => updateSelected('fill', e.target.value)} style={{ height: '40px', width: '100%', cursor: 'pointer' }} />
+            <input type="color" value={selectedElement.fill} onChange={(e) => updateSelected('fill', e.target.value)} style={{ height: '40px', width: '100%', cursor: 'pointer', border: 'none', borderRadius: '5px' }} />
           )}
         </div>
       )}
@@ -307,7 +350,7 @@ function CanvasEditor({ onBack }) {
         </div>
 
         <div onClick={() => { setActivePanel('color'); setSelectedId(null); }} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', minWidth: '60px', cursor: 'pointer', color: activePanel === 'color' ? '#d900a8' : '#333' }}>
-          <Icons.Color /> <span style={{ fontSize: '11px', marginTop: '5px' }}>Фон</span>
+          <Icons.Color /> <span style={{ fontSize: '11px', marginTop: '5px' }}>Цвет</span>
         </div>
 
         <div onClick={() => fileInputRef.current.click()} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', minWidth: '60px', cursor: 'pointer', color: '#333' }}>
@@ -386,7 +429,7 @@ export default function App() {
       <div style={{ padding: '0 30px', marginBottom: '40px' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
           <h2 style={{ fontSize: '18px', margin: 0, color: '#111' }}>Популярные фоны</h2>
-          <span style={{ color: '#d900a8', fontWeight: 'bold' }}>See all</span>
+          <span style={{ color: '#d900a8', fontWeight: 'bold', fontSize: '14px', cursor: 'pointer' }}>See all</span>
         </div>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: '20px' }}>
           <div onClick={() => setView('editor')} style={{ cursor: 'pointer' }}>
@@ -407,6 +450,7 @@ export default function App() {
           <span>+</span> Начни с фото или видео
         </button>
       </div>
+
     </div>
   );
 }
