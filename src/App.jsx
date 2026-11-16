@@ -381,4 +381,180 @@ function CanvasEditor({ onBack, templateKey }) {
               </div>
               
               <label style={{ fontSize: '12px', color: '#666' }}>Размер шрифта</label>
-              <input type
+              <input type="range" min="10" max="100" value={selectedElement.fontSize} onChange={(e) => updateSelected('fontSize', parseInt(e.target.value))} />
+              
+              <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+                 <div style={{ flex: 1 }}>
+                   <label style={{ fontSize: '12px', color: '#666' }}>Цвет обводки</label>
+                   <input type="color" value={selectedElement.strokeColor || '#000000'} onChange={(e) => updateSelected('strokeColor', e.target.value)} style={{ width: '100%', height: '40px', padding: 0, border: 'none', borderRadius: '5px' }} />
+                 </div>
+                 <div style={{ flex: 1 }}>
+                   <label style={{ fontSize: '12px', color: '#666' }}>Толщина обводки</label>
+                   <input type="range" min="0" max="10" value={selectedElement.strokeWidth || 0} onChange={(e) => updateSelected('strokeWidth', parseInt(e.target.value))} />
+                 </div>
+              </div>
+            </>
+          )}
+
+          {(selectedElement.type === 'shape') && (
+            <input type="color" value={selectedElement.fill} onChange={(e) => updateSelected('fill', e.target.value)} style={{ height: '40px', width: '100%', cursor: 'pointer', border: 'none', borderRadius: '5px' }} />
+          )}
+        </div>
+      )}
+
+      {activePanel === 'color' && (
+        <div style={{ position: 'absolute', bottom: '80px', left: '10px', right: '10px', height: '150px', backgroundColor: '#fff', borderRadius: '10px', padding: '15px', zIndex: 100, boxShadow: '0 -4px 15px rgba(0,0,0,0.1)', overflowY: 'auto' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '10px' }}>
+            <h4 style={{margin: 0}}>Цвета</h4>
+            <button onClick={() => setActivePanel(null)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontWeight: 'bold' }}>X</button>
+          </div>
+          <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+             {BACKGROUNDS.map((bg, i) => (
+               <div key={i} onClick={() => { setBgColor(bg); setActivePanel(null); }} style={{ width: '50px', height: '50px', background: bg, borderRadius: '8px', border: '1px solid #ccc', cursor: 'pointer' }} />
+             ))}
+          </div>
+        </div>
+      )}
+
+      {activePanel === 'text' && (
+        <div style={{ position: 'absolute', bottom: '80px', left: '10px', right: '10px', height: '200px', backgroundColor: '#fff', borderRadius: '10px', padding: '15px', overflowY: 'auto', zIndex: 100, boxShadow: '0 -4px 15px rgba(0,0,0,0.1)' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '10px' }}>
+            <h4 style={{margin: 0}}>Шрифты</h4>
+            <button onClick={() => setActivePanel(null)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontWeight: 'bold' }}>X</button>
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+            {FONTS.map((f, i) => <div key={i} onClick={() => addText(f)} style={{ padding: '10px', backgroundColor: '#f5f5f5', borderRadius: '5px', fontFamily: f, cursor: 'pointer', fontSize: '14px' }}>{f}</div>)}
+          </div>
+        </div>
+      )}
+
+      {activePanel === 'shapes' && (
+        <div style={{ position: 'absolute', bottom: '80px', left: '10px', right: '10px', height: '200px', backgroundColor: '#fff', borderRadius: '10px', padding: '15px', overflowY: 'auto', zIndex: 100, boxShadow: '0 -4px 15px rgba(0,0,0,0.1)' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '10px' }}>
+            <h4 style={{margin: 0}}>100 Фигур</h4>
+            <button onClick={() => setActivePanel(null)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontWeight: 'bold' }}>X</button>
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(50px, 1fr))', gap: '10px' }}>
+            {FULL_SHAPES.map((s, i) => (
+              <div key={i} onClick={() => addShape(s.path)} style={{ height: '50px', backgroundColor: '#f5f5f5', borderRadius: '5px', display: 'flex', justifyContent: 'center', alignItems: 'center', cursor: 'pointer' }}>
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="#333">
+                   <path d={s.path} />
+                </svg>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      <div style={{ height: '80px', backgroundColor: '#fff', display: 'flex', alignItems: 'center', overflowX: 'auto', borderTop: '1px solid #eee', padding: '0 10px', flexShrink: 0, gap: '20px' }}>
+        <div onClick={() => { setActivePanel('text'); setSelectedId(null); }} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', minWidth: '60px', cursor: 'pointer', color: activePanel === 'text' ? '#d900a8' : '#333' }}>
+          <Icons.Text /> <span style={{ fontSize: '11px', marginTop: '5px' }}>Текст</span>
+        </div>
+        <div onClick={() => { setActivePanel('shapes'); setSelectedId(null); }} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', minWidth: '60px', cursor: 'pointer', color: activePanel === 'shapes' ? '#d900a8' : '#333' }}>
+          <Icons.Shape /> <span style={{ fontSize: '11px', marginTop: '5px' }}>Фигуры</span>
+        </div>
+        <div onClick={() => { setActivePanel('color'); setSelectedId(null); }} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', minWidth: '60px', cursor: 'pointer', color: activePanel === 'color' ? '#d900a8' : '#333' }}>
+          <Icons.Color /> <span style={{ fontSize: '11px', marginTop: '5px' }}>Фон</span>
+        </div>
+        <div onClick={() => fileInputRef.current.click()} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', minWidth: '60px', cursor: 'pointer', color: '#333' }}>
+          <Icons.Image /> <span style={{ fontSize: '11px', marginTop: '5px' }}>Фото</span>
+        </div>
+        <div onClick={() => { setTool('draw'); setActivePanel(null); setSelectedId(null); }} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', minWidth: '60px', cursor: 'pointer', color: tool === 'draw' ? '#d900a8' : '#333' }}>
+          <Icons.Draw /> <span style={{ fontSize: '11px', marginTop: '5px' }}>Рисовать</span>
+        </div>
+        <div onClick={clearDrawings} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', minWidth: '60px', cursor: 'pointer', color: '#333' }}>
+          <Icons.Eraser /> <span style={{ fontSize: '11px', marginTop: '5px' }}>Стереть</span>
+        </div>
+        <div onClick={() => { setShowGrid(!showGrid); setActivePanel(null); }} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', minWidth: '60px', cursor: 'pointer', color: showGrid ? '#d900a8' : '#333' }}>
+          <Icons.Grid /> <span style={{ fontSize: '11px', marginTop: '5px' }}>Сетка</span>
+        </div>
+        <div onClick={() => { setCanvasSize(canvasSize.width === 600 ? { width: 800, height: 600 } : { width: 600, height: 800 }); setActivePanel(null); }} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', minWidth: '60px', cursor: 'pointer', color: '#333' }}>
+          <Icons.Cut /> <span style={{ fontSize: '11px', marginTop: '5px' }}>Формат</span>
+        </div>
+      </div>
+      <input type="file" accept="image/*" ref={fileInputRef} onChange={handleImageUpload} style={{ display: 'none' }} />
+    </div>
+  );
+}
+
+export default function App() {
+  const [view, setView] = useState('dashboard');
+  const [template, setTemplate] = useState(null);
+
+  const openEditor = (templateKey = null) => {
+    setTemplate(templateKey);
+    setView('editor');
+  };
+
+  if (view === 'editor') {
+    return <CanvasEditor onBack={() => setView('dashboard')} templateKey={template} />;
+  }
+
+  const iconBox = { width: '70px', height: '70px', backgroundColor: 'white', borderRadius: '20px', boxShadow: '0 2px 10px rgba(0,0,0,0.03)', display: 'flex', justifyContent: 'center', alignItems: 'center', fontSize: '28px', marginBottom: '10px', color: '#d900a8', border: '1px solid #f0f0f0' };
+
+  return (
+    <div style={{ fontFamily: 'sans-serif', backgroundColor: '#ffffff', minHeight: '100vh', paddingBottom: '100px', color: '#111' }}>
+      
+      <header style={{ padding: '20px 30px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <h1 style={{ fontSize: '32px', fontWeight: 'bold', margin: 0, color: '#111' }}>Редактор</h1>
+        <div style={{ display: 'flex', gap: '20px', alignItems: 'center' }}>
+          <button style={{ border: '1px solid #ddd', background: 'white', padding: '8px 16px', borderRadius: '20px', cursor: 'pointer', fontWeight: 'bold' }}>Try PRO</button>
+          <span style={{ fontSize: '24px', cursor: 'pointer' }}>🔍</span>
+        </div>
+      </header>
+
+      <div style={{ padding: '0 30px', display: 'flex', gap: '30px', borderBottom: '1px solid #f0f0f0', paddingBottom: '10px', marginBottom: '30px', overflowX: 'auto' }}>
+        {['Фото', 'Видео', '✨ Agents', 'Шаблоны', 'Приложения', 'Рисовать'].map((tab, i) => (
+          <span key={tab} style={{ color: i === 0 ? '#d900a8' : '#555', borderBottom: i === 0 ? '2px solid #d900a8' : 'none', paddingBottom: '10px', fontWeight: 'bold', cursor: 'pointer', whiteSpace: 'nowrap' }}>{tab}</span>
+        ))}
+      </div>
+
+      <div style={{ padding: '0 30px', display: 'flex', gap: '20px', marginBottom: '40px', overflowX: 'auto' }}>
+         {['Убрать фон', 'Добавить т...', 'Удаление', 'ИИ Улучшить', 'Коллаж', 'Эффекты', 'Фристайл', 'Корректор'].map((tool, i) => (
+           <div key={i} onClick={() => openEditor()} style={{ minWidth: '80px', textAlign: 'center', cursor: 'pointer' }}>
+             <div style={iconBox}>{['✂️', 'T', '🩹', '✨', '🖼️', '🎨', '🖌️', '🔧'][i]}</div>
+             <div style={{ fontSize: '12px', color: '#555', whiteSpace: 'nowrap' }}>{tool}</div>
+           </div>
+         ))}
+      </div>
+
+      <div style={{ padding: '0 30px', marginBottom: '40px' }}>
+        <h2 style={{ fontSize: '18px', marginBottom: '20px', color: '#111' }}>Шаблоны</h2>
+        <div style={{ display: 'flex', gap: '20px', overflowX: 'auto', paddingBottom: '20px' }}>
+          <div onClick={() => openEditor('instagram-post')} style={{ minWidth: '280px', height: '180px', borderRadius: '20px', background: '#f0f0f0', display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', position: 'relative', cursor: 'pointer', border: '2px solid #ddd' }}>
+            <span style={{ fontSize: '40px', fontWeight: 'bold', color: '#d900a8', fontFamily: 'Impact' }}>MY BRAND</span>
+            <span style={{ position: 'absolute', bottom: '15px', left: '15px', background: 'rgba(255,255,255,0.9)', padding: '5px 10px', borderRadius: '10px', fontSize: '12px', fontWeight: 'bold' }}>Пост для Instagram</span>
+          </div>
+          <div onClick={() => openEditor('story')} style={{ minWidth: '280px', height: '180px', borderRadius: '20px', background: '#111', display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', position: 'relative', cursor: 'pointer' }}>
+            <span style={{ fontSize: '30px', fontWeight: 'bold', color: '#fff', fontFamily: 'Impact' }}>СМОТРИ</span>
+            <span style={{ fontSize: '20px', color: '#d900a8', fontWeight: 'bold' }}>НОВЫЙ ДИЗАЙН</span>
+             <div style={{ position: 'absolute', bottom: '15px', left: '15px', background: 'rgba(255,255,255,0.9)', padding: '5px 10px', borderRadius: '10px', fontSize: '12px', fontWeight: 'bold', color: '#111' }}>Сторис</span>
+          </div>
+        </div>
+      </div>
+
+      <div style={{ padding: '0 30px', marginBottom: '40px' }}>
+        <h2 style={{ fontSize: '18px', marginBottom: '20px', color: '#111' }}>Популярные фоны</h2>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: '20px' }}>
+          <div onClick={() => openEditor()} style={{ cursor: 'pointer' }}>
+            <div style={{ height: '140px', borderRadius: '20px', border: '1px solid #ddd', backgroundImage: 'linear-gradient(45deg, #f5f5f5 25%, transparent 25%), linear-gradient(-45deg, #f5f5f5 25%, transparent 25%), linear-gradient(45deg, transparent 75%, #f5f5f5 75%), linear-gradient(-45deg, transparent 75%, #f5f5f5 75%)', backgroundSize: '20px 20px', backgroundColor: 'white' }}></div>
+            <div style={{ fontSize: '14px', marginTop: '10px', color: '#555' }}>Пустой</div>
+          </div>
+          <div onClick={() => openEditor()} style={{ cursor: 'pointer' }}>
+            <div style={{ height: '140px', borderRadius: '20px', background: 'linear-gradient(135deg, #f6d365 0%, #fda085 100%)', display: 'flex', justifyContent: 'flex-end', alignItems: 'flex-end', padding: '15px' }}>
+               <div style={{ backgroundColor: 'rgba(0,0,0,0.3)', color: 'white', borderRadius: '50%', width: '30px', height: '30px', display: 'flex', justifyContent: 'center', alignItems: 'center', fontSize: '12px' }}>17</div>
+            </div>
+            <div style={{ fontSize: '14px', marginTop: '10px', color: '#555' }}>Цвет</div>
+          </div>
+        </div>
+      </div>
+
+      <div style={{ position: 'fixed', bottom: '30px', left: 0, right: 0, display: 'flex', justifyContent: 'center', zIndex: 100 }}>
+        <button onClick={() => openEditor()} style={{ padding: '15px 30px', backgroundColor: '#c400a0', color: 'white', border: 'none', borderRadius: '30px', fontSize: '18px', fontWeight: 'bold', cursor: 'pointer', boxShadow: '0 10px 20px rgba(196, 0, 160, 0.3)' }}>
+          <span>+</span> Начни с фото или видео
+        </button>
+      </div>
+
+    </div>
+  );
+}
