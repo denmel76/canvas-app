@@ -64,10 +64,8 @@ const SHAPES_LIBRARY = [
 ];
 
 const FULL_SHAPES = Array(100).fill(null).map((_, i) => SHAPES_LIBRARY[i % SHAPES_LIBRARY.length]);
-
 const BACKGROUNDS = ['#ffffff', '#f0f0f0', '#111111', '#ff0000', '#00ff00', '#0000ff', '#ffff00', '#ff00ff'];
 
-// ШАБЛОНЫ
 const TEMPLATES = {
   'instagram-post': {
     name: 'Пост Instagram',
@@ -107,7 +105,6 @@ function CanvasEditor({ onBack, templateKey }) {
   const fileInputRef = useRef(null);
   const trRef = useRef(null);
 
-  // Загрузка шаблона или сохраненного проекта
   useEffect(() => {
     const loadProject = async () => {
       if (templateKey && TEMPLATES[templateKey]) {
@@ -118,7 +115,6 @@ function CanvasEditor({ onBack, templateKey }) {
         setIsLoading(false);
         return;
       }
-
       try {
         const { data } = await supabase.from('projects').select('data').eq('user_id', DEVICE_ID).single();
         if (data && data.data) {
@@ -133,7 +129,6 @@ function CanvasEditor({ onBack, templateKey }) {
     loadProject();
   }, [templateKey]);
 
-  // Сохранение в облако
   useEffect(() => {
     if (isLoading) return;
     const saveTimeout = setTimeout(async () => {
@@ -148,7 +143,6 @@ function CanvasEditor({ onBack, templateKey }) {
     return () => clearTimeout(saveTimeout);
   }, [elements, lines, bgColor, canvasSize, isLoading]);
 
-  // Привязка трансформера
   useEffect(() => {
     if (selectedId && trRef.current) {
       const node = stageRef.current.findOne('#' + selectedId);
@@ -160,33 +154,14 @@ function CanvasEditor({ onBack, templateKey }) {
   }, [selectedId]);
 
   const addText = (font) => {
-    setElements([...elements, { 
-      id: Date.now().toString(), 
-      type: 'text', 
-      x: 50, y: 50, 
-      text: 'Ваш текст', 
-      fontSize: 40, 
-      fill: '#111', 
-      fontFamily: font || 'Arial',
-      strokeColor: '#000000',
-      strokeWidth: 0
-    }]);
+    setElements([...elements, { id: Date.now().toString(), type: 'text', x: 50, y: 50, text: 'Ваш текст', fontSize: 40, fill: '#111', fontFamily: font || 'Arial', strokeColor: '#000000', strokeWidth: 0 }]);
     setActivePanel(null);
   };
 
   const addShape = (shapePath) => {
-    setElements([...elements, { 
-      id: Date.now().toString(), 
-      type: 'shape', 
-      shapeType: 'svg',
-      path: shapePath, 
-      x: 100, y: 100, 
-      width: 100, height: 100, 
-      fill: '#3b82f6' 
-    }]);
+    setElements([...elements, { id: Date.now().toString(), type: 'shape', shapeType: 'svg', path: shapePath, x: 100, y: 100, width: 100, height: 100, fill: '#3b82f6' }]);
     setActivePanel(null);
   };
-
   const handleImageUpload = (e) => {
     const file = e.target.files[0];
     if (!file) return;
@@ -225,14 +200,7 @@ function CanvasEditor({ onBack, templateKey }) {
 
   const handleMouseUp = () => { isDrawing.current = false; };
   const clearDrawings = () => { setLines([]); setTool('select'); setActivePanel(null); };
-
-  const clearCanvas = () => {
-    if(window.confirm('Очистить холст? Все элементы удалятся.')) {
-      setElements([]);
-      setLines([]);
-      setBgColor('#ffffff');
-    }
-  };
+  const clearCanvas = () => { if(window.confirm('Очистить холст?')) { setElements([]); setLines([]); setBgColor('#ffffff'); } };
 
   const downloadImage = () => {
     setSelectedId(null);
@@ -273,15 +241,7 @@ function CanvasEditor({ onBack, templateKey }) {
 
   const renderShape = (path, props) => {
     return (
-      <Path
-        {...props}
-        data={path}
-        fill={props.fill}
-        stroke={props.stroke}
-        strokeWidth={props.strokeWidth}
-        scaleX={props.width / 24}
-        scaleY={props.height / 24}
-      />
+      <Path {...props} data={path} fill={props.fill} stroke={props.stroke} strokeWidth={props.strokeWidth} scaleX={props.width / 24} scaleY={props.height / 24} />
     );
   };
 
@@ -301,13 +261,7 @@ function CanvasEditor({ onBack, templateKey }) {
 
       <div style={{ flex: 1, display: 'flex', justifyContent: 'center', alignItems: 'center', overflow: 'auto', padding: '20px', backgroundColor: '#e0e0e0' }}>
         <div style={{ boxShadow: '0 4px 20px rgba(0,0,0,0.1)', backgroundColor: bgColor }}>
-          <Stage 
-            width={canvasSize.width} height={canvasSize.height} 
-            onMouseDown={handleMouseDown} onMousemove={handleMouseMove} onMouseup={handleMouseUp}
-            onTouchStart={handleMouseDown} onTouchMove={handleMouseMove} onTouchEnd={handleMouseUp}
-            ref={stageRef}
-            style={{ cursor: tool === 'draw' ? 'crosshair' : 'default' }}
-          >
+          <Stage width={canvasSize.width} height={canvasSize.height} onMouseDown={handleMouseDown} onMousemove={handleMouseMove} onMouseup={handleMouseUp} onTouchStart={handleMouseDown} onTouchMove={handleMouseMove} onTouchEnd={handleMouseUp} ref={stageRef} style={{ cursor: tool === 'draw' ? 'crosshair' : 'default' }}>
             <Layer>
               {showGrid && Array.from({ length: Math.floor(canvasSize.width / 50) }).map((_, i) => (
                 <React.Fragment key={i}>
@@ -320,10 +274,7 @@ function CanvasEditor({ onBack, templateKey }) {
               {elements.map((el) => {
                 const isSelected = el.id === selectedId;
                 const commonProps = {
-                  id: el.id,
-                  draggable: true,
-                  onClick: () => setSelectedId(el.id),
-                  onTap: () => setSelectedId(el.id),
+                  id: el.id, draggable: true, onClick: () => setSelectedId(el.id), onTap: () => setSelectedId(el.id),
                   onDragEnd: (e) => setElements(elements.map(item => item.id === el.id ? { ...item, x: e.target.x(), y: e.target.y() } : item)),
                 };
 
@@ -332,28 +283,19 @@ function CanvasEditor({ onBack, templateKey }) {
                   return <KonvaImage key={el.id} image={img} {...el} {...commonProps} />;
                 }
                 if (el.type === 'text') {
-                  return <Text key={el.id} {...el} {...commonProps} 
-                    stroke={isSelected ? '#d900a8' : el.strokeColor} 
-                    strokeWidth={isSelected ? 1 : el.strokeWidth} 
-                  />;
+                  return <Text key={el.id} {...el} {...commonProps} stroke={isSelected ? '#d900a8' : el.strokeColor} strokeWidth={isSelected ? 1 : el.strokeWidth} />;
                 }
                 if (el.type === 'shape' && el.shapeType === 'svg') {
-                  return React.cloneElement(renderShape(el.path, el), {
-                    key: el.id, ...commonProps, stroke: isSelected ? '#d900a8' : undefined, strokeWidth: isSelected ? 2 : 0
-                  });
+                  return React.cloneElement(renderShape(el.path, el), { key: el.id, ...commonProps, stroke: isSelected ? '#d900a8' : undefined, strokeWidth: isSelected ? 2 : 0 });
                 }
                 return null;
               })}
-              {selectedId && <Transformer 
-                ref={trRef} 
-                boundBoxFunc={(oldBox, newBox) => (newBox.width < 5 || newBox.height < 5) ? oldBox : newBox}
-                onTransformEnd={(e) => {
+              {selectedId && <Transformer ref={trRef} boundBoxFunc={(oldBox, newBox) => (newBox.width < 5 || newBox.height < 5) ? oldBox : newBox} onTransformEnd={(e) => {
                    const node = e.target;
                    const scaleX = node.scaleX(); const scaleY = node.scaleY();
                    node.scaleX(1); node.scaleY(1);
                    setElements(elements.map(item => item.id === selectedId ? { ...item, x: node.x(), y: node.y(), width: Math.max(5, node.width() * scaleX), height: Math.max(5, node.height() * scaleY) } : item));
-                }}
-              />}
+                }} />}
             </Layer>
           </Stage>
         </div>
@@ -369,7 +311,6 @@ function CanvasEditor({ onBack, templateKey }) {
               <button onClick={deleteSelected} style={{ backgroundColor: '#ff4444', color: 'white', border: 'none', padding: '5px 15px', borderRadius: '5px', fontWeight: 'bold', cursor: 'pointer' }}>Удалить</button>
             </div>
           </div>
-
           {selectedElement.type === 'text' && (
             <>
               <input type="text" value={selectedElement.text} onChange={(e) => updateSelected('text', e.target.value)} style={{ padding: '10px', border: '1px solid #ddd', borderRadius: '5px', width: '100%', boxSizing: 'border-box' }} />
@@ -379,10 +320,8 @@ function CanvasEditor({ onBack, templateKey }) {
                 </select>
                 <input type="color" value={selectedElement.fill} onChange={(e) => updateSelected('fill', e.target.value)} style={{ width: '40px', height: '40px', padding: 0, border: 'none', borderRadius: '5px' }} />
               </div>
-              
               <label style={{ fontSize: '12px', color: '#666' }}>Размер шрифта</label>
               <input type="range" min="10" max="100" value={selectedElement.fontSize} onChange={(e) => updateSelected('fontSize', parseInt(e.target.value))} />
-              
               <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
                  <div style={{ flex: 1 }}>
                    <label style={{ fontSize: '12px', color: '#666' }}>Цвет обводки</label>
@@ -395,7 +334,6 @@ function CanvasEditor({ onBack, templateKey }) {
               </div>
             </>
           )}
-
           {(selectedElement.type === 'shape') && (
             <input type="color" value={selectedElement.fill} onChange={(e) => updateSelected('fill', e.target.value)} style={{ height: '40px', width: '100%', cursor: 'pointer', border: 'none', borderRadius: '5px' }} />
           )}
@@ -481,20 +419,14 @@ export default function App() {
   const [view, setView] = useState('dashboard');
   const [template, setTemplate] = useState(null);
 
-  const openEditor = (templateKey = null) => {
-    setTemplate(templateKey);
-    setView('editor');
-  };
+  const openEditor = (templateKey = null) => { setTemplate(templateKey); setView('editor'); };
 
-  if (view === 'editor') {
-    return <CanvasEditor onBack={() => setView('dashboard')} templateKey={template} />;
-  }
+  if (view === 'editor') return <CanvasEditor onBack={() => setView('dashboard')} templateKey={template} />;
 
   const iconBox = { width: '70px', height: '70px', backgroundColor: 'white', borderRadius: '20px', boxShadow: '0 2px 10px rgba(0,0,0,0.03)', display: 'flex', justifyContent: 'center', alignItems: 'center', fontSize: '28px', marginBottom: '10px', color: '#d900a8', border: '1px solid #f0f0f0' };
 
   return (
     <div style={{ fontFamily: 'sans-serif', backgroundColor: '#ffffff', minHeight: '100vh', paddingBottom: '100px', color: '#111' }}>
-      
       <header style={{ padding: '20px 30px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <h1 style={{ fontSize: '32px', fontWeight: 'bold', margin: 0, color: '#111' }}>Редактор</h1>
         <div style={{ display: 'flex', gap: '20px', alignItems: 'center' }}>
@@ -502,13 +434,11 @@ export default function App() {
           <span style={{ fontSize: '24px', cursor: 'pointer' }}>🔍</span>
         </div>
       </header>
-
       <div style={{ padding: '0 30px', display: 'flex', gap: '30px', borderBottom: '1px solid #f0f0f0', paddingBottom: '10px', marginBottom: '30px', overflowX: 'auto' }}>
         {['Фото', 'Видео', '✨ Agents', 'Шаблоны', 'Приложения', 'Рисовать'].map((tab, i) => (
           <span key={tab} style={{ color: i === 0 ? '#d900a8' : '#555', borderBottom: i === 0 ? '2px solid #d900a8' : 'none', paddingBottom: '10px', fontWeight: 'bold', cursor: 'pointer', whiteSpace: 'nowrap' }}>{tab}</span>
         ))}
       </div>
-
       <div style={{ padding: '0 30px', display: 'flex', gap: '20px', marginBottom: '40px', overflowX: 'auto' }}>
          {['Убрать фон', 'Добавить т...', 'Удаление', 'ИИ Улучшить', 'Коллаж', 'Эффекты', 'Фристайл', 'Корректор'].map((tool, i) => (
            <div key={i} onClick={() => openEditor()} style={{ minWidth: '80px', textAlign: 'center', cursor: 'pointer' }}>
@@ -517,7 +447,6 @@ export default function App() {
            </div>
          ))}
       </div>
-
       <div style={{ padding: '0 30px', marginBottom: '40px' }}>
         <h2 style={{ fontSize: '18px', marginBottom: '20px', color: '#111' }}>Шаблоны</h2>
         <div style={{ display: 'flex', gap: '20px', overflowX: 'auto', paddingBottom: '20px' }}>
@@ -528,11 +457,10 @@ export default function App() {
           <div onClick={() => openEditor('story')} style={{ minWidth: '280px', height: '180px', borderRadius: '20px', background: '#111', display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', position: 'relative', cursor: 'pointer' }}>
             <span style={{ fontSize: '30px', fontWeight: 'bold', color: '#fff', fontFamily: 'Impact' }}>СМОТРИ</span>
             <span style={{ fontSize: '20px', color: '#d900a8', fontWeight: 'bold' }}>НОВЫЙ ДИЗАЙН</span>
-             <div style={{ position: 'absolute', bottom: '15px', left: '15px', background: 'rgba(255,255,255,0.9)', padding: '5px 10px', borderRadius: '10px', fontSize: '12px', fontWeight: 'bold', color: '#111' }}>Сторис</span>
+             <div style={{ position: 'absolute', bottom: '15px', left: '15px', background: 'rgba(255,255,255,0.9)', padding: '5px 10px', borderRadius: '10px', fontSize: '12px', fontWeight: 'bold', color: '#111' }}>Сторис</div>
           </div>
         </div>
       </div>
-
       <div style={{ padding: '0 30px', marginBottom: '40px' }}>
         <h2 style={{ fontSize: '18px', marginBottom: '20px', color: '#111' }}>Популярные фоны</h2>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: '20px' }}>
@@ -548,13 +476,11 @@ export default function App() {
           </div>
         </div>
       </div>
-
       <div style={{ position: 'fixed', bottom: '30px', left: 0, right: 0, display: 'flex', justifyContent: 'center', zIndex: 100 }}>
         <button onClick={() => openEditor()} style={{ padding: '15px 30px', backgroundColor: '#c400a0', color: 'white', border: 'none', borderRadius: '30px', fontSize: '18px', fontWeight: 'bold', cursor: 'pointer', boxShadow: '0 10px 20px rgba(196, 0, 160, 0.3)' }}>
           <span>+</span> Начни с фото или видео
         </button>
       </div>
-
     </div>
   );
 }
