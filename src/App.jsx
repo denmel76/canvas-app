@@ -2,11 +2,12 @@ import React, { useState, useRef, useEffect, useLayoutEffect, useCallback } from
 import { Stage, Layer, Rect, Text, Image as KonvaImage, Transformer, Line, Ellipse, RegularPolygon } from 'react-konva';
 import Konva from 'konva';
 import { createClient } from '@supabase/supabase-js';
+import removeBackground from '@imgly/background-removal';
 
 const SUPABASE_URL = 'https://iqvujenjffevijvtdvd.supabase.co';
 const SUPABASE_ANON_KEY = 'sb_publishable_Cbcd0LznpbNCIA6JwOskig_4SkcqVhL';
 const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-const N8N_REMOVE_BG_URL = 'https://denismelgarez.app.n8n.cloud/webhook/remove-bg';
+const IMGLY_CDN = 'https://cdn.jsdelivr.net/npm/@imgly/background-removal-data@1.4.5/dist/';
 
 const CSS = `
 @import url('https://fonts.googleapis.com/css2?family=Unbounded:wght@500;700;900&family=Manrope:wght@400;500;600;700;800&display=swap');
@@ -76,6 +77,7 @@ input[type=color]{width:36px;height:36px;border:none;border-radius:10px;padding:
 .card h3{font-family:Unbounded;margin:0 0 14px}
 .busy{position:fixed;inset:0;z-index:50;background:rgba(255,255,255,.65);backdrop-filter:blur(3px);display:grid;place-items:center}
 .busybox{display:flex;flex-direction:column;align-items:center;gap:14px;font:700 14px Manrope;color:var(--mag)}
+.busynote{font:600 12px Manrope;color:var(--mut);text-align:center;max-width:260px}
 .spinner{width:54px;height:54px;border-radius:50%;border:5px solid #ffd7ea;border-top-color:var(--mag);animation:spin 1s linear infinite}
 .plan{border:1px solid var(--line);border-radius:16px;padding:14px;margin:10px 0;display:flex;justify-content:space-between;align-items:center}
 .plan b{font-family:Unbounded}
@@ -189,6 +191,7 @@ export default function App() {
   const [searchOpen, setSearchOpen] = useState(false);
   const [query, setQuery] = useState('');
   const [busy, setBusy] = useState(false);
+  const [bgProgress, setBgProgress] = useState(0);
   const [toasts, setToasts] = useState([]);
   const [saveStatus, setSaveStatus] = useState('');
   const [cs, setCs] = useState({ w: 800, h: 600 });
@@ -256,19 +259,26 @@ export default function App() {
   const pickImage = (cb) => { const inp = document.createElement('input'); inp.type = 'file'; inp.accept = 'image/*'; inp.onchange = () => { const f = inp.files && inp.files[0]; if (!f) return; const r = new FileReader(); r.onload = () => { const img = new window.Image(); img.onload = () => cb(r.result, img.width, img.height); img.src = r.result; }; r.readAsDataURL(f); }; inp.click(); };
 
   const removeBg = async (id, src) => {
-    setBusy(true);
+    setBusy(true); setBgProgress(0);
     try {
-      const base64 = src.split(',')[1];
-      const res = await fetch(N8N_REMOVE_BG_URL, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ image: base64 }) });
-      if (!res.ok) throw new Error('n8n вернул ' + res.status);
-      const ct = res.headers.get('content-type') || '';
-      if (ct.includes('application/json')) throw new Error('n8n вернул JSON, а не картинку');
-      const blob = await res.blob();
-      const dataUrl = await new Promise((ok, no) => { const r = new FileReader(); r.onload = () => ok(r.result); r.onerror = () => no(new Error('чтение ответа')); r.readAsDataURL(blob); });
+      const inputBlob = await (await fetch(src)).blob();
+      const outBlob = await Promise.race([
+        removeBackground(inputBlob, {
+          publicPath: IMGLY_CDN,
+          model: 'medium',
+          output: { format: 'image/png', quality: 1 },
+          progress: (key, current, total) => { if (total) setBgProgress(Math.round((current / total) * 100)); }
+        }),
+        new Promise((_, rej) => setTimeout(() => rej(new Error('долго грузится модель — проверь интернет и повтори')), 180000))
+      ]);
+      const dataUrl = await new Promise((ok, no) => { const r = new FileReader(); r.onload = () => ok(r.result); r.onerror = () => no(new Error('чтение результата')); r.readAsDataURL(outBlob); });
       mutate(p => p.map(e => e.id === id ? { ...e, src: dataUrl } : e));
-      toast('Фон удалён', 'ok');
-    } catch (err) { toast('Не вышло: ' + err.message + '. Проверь n8n Active и URL /webhook/remove-bg', 'err'); }
-    finally { setBusy(false); }
+      toast('Фон удалён (на устройстве)', 'ok');
+    } catch (e) {
+      alert('Ошибка: ' + (e && e.message ? e.message : e));
+    } finally {
+      setBusy(false);
+    }
   };
   const removeBgSelected = () => { const el = elements.find(e => e.id === selectedId && e.type === 'image') || [...elements].reverse().find(e => e.type === 'image'); if (!el) { toast('Сначала добавь фото', 'err'); return; } removeBg(el.id, el.src); };
 
@@ -328,7 +338,7 @@ export default function App() {
   const VIDEO = [{ icon: 'video', title: 'Обложка YouTube', act: () => { setFormat(FORMATS[2]); openEditor(); addText(); } }, { icon: 'video', title: 'Обложка Shorts', act: () => { setFormat(FORMATS[3]); openEditor(); addText(); } }];
   const APPS = [{ icon: 'image', title: 'Коллаж', act: TOOLS[4].act }, { icon: 'palette', title: 'Эффекты', act: TOOLS[5].act }, { icon: 'wand', title: 'Корректор', act: TOOLS[7].act }, { icon: 'grid', title: 'Фоны', act: () => { openEditor(); setTool('bg'); } }];
   const DRAWC = [{ icon: 'brush', title: 'Фристайл', act: TOOLS[6].act }, { icon: 'brush', title: 'Неон-кисть', act: () => { setBrushColor('#00c2d1'); setBrushSize(14); openEditor(); setTool('draw'); } }, { icon: 'brush', title: 'Скетч', act: () => { setBrushColor('#17121f'); setBrushSize(4); openEditor(); setTool('draw'); } }];
-    const selectedEl = elements.find(e => e.id === selectedId);
+   const selectedEl = elements.find(e => e.id === selectedId);
   const bgStyle = (b) => b.mode === 'gradient' ? { background: `linear-gradient(135deg,${b.from},${b.to})` } : { background: b.color };
 
   const renderHome = () => (
@@ -387,7 +397,7 @@ export default function App() {
       <button className="btn ghost" style={{ marginTop: 10 }} onClick={() => setAuthMode(authMode === 'in' ? 'up' : 'in')}>{authMode === 'in' ? 'Нет аккаунта? Создать' : 'Уже есть? Войти'}</button>
     </div></div>}
   </>);
-    const renderPanel = () => {
+     const renderPanel = () => {
     if (tool === 'draw' || tool === 'erase') return <div className="panel"><h4>{tool === 'draw' ? 'Кисть' : 'Ластик'}</h4>
       <div className="row"><span className="lbl">Цвет</span><input type="color" value={brushColor} onChange={e => setBrushColor(e.target.value)} /></div>
       <div className="row"><span className="lbl">Размер</span><input type="range" min="2" max="60" value={brushSize} onChange={e => setBrushSize(+e.target.value)} /></div>
@@ -492,7 +502,7 @@ export default function App() {
       {screen === 'home' ? renderHome() : renderEditor()}
       {renderModals()}
       <div className="toasts">{toasts.map(t => <div key={t.id} className={'toast ' + t.type}><Icon n={t.type === 'ok' ? 'check' : t.type === 'err' ? 'x' : 'sparkles'} s={16} />{t.msg}</div>)}</div>
-      {busy && <div className="busy"><div className="busybox"><div className="spinner" />Убираю фон через n8n...</div></div>}
+      {busy && <div className="busy"><div className="busybox"><div className="spinner" />Убираю фон на устройстве... {bgProgress}%<div className="busynote">Первый раз скачивается нейромодель (~40 МБ), потом работает быстро и без интернета</div></div></div>}
     </div>
   </>);
 }
