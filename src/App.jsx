@@ -2,12 +2,12 @@ import React, { useState, useRef, useEffect, useLayoutEffect, useCallback } from
 import { Stage, Layer, Rect, Text, Image as KonvaImage, Transformer, Line, Ellipse, RegularPolygon } from 'react-konva';
 import Konva from 'konva';
 import { createClient } from '@supabase/supabase-js';
-import removeBackground from '@imgly/background-removal';
+import * as imgly from '@imgly/background-removal';
+const removeBackground = imgly.removeBackground || imgly.default;
 
 const SUPABASE_URL = 'https://iqvujenjffevijvtdvd.supabase.co';
 const SUPABASE_ANON_KEY = 'sb_publishable_Cbcd0LznpbNCIA6JwOskig_4SkcqVhL';
 const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-const IMGLY_CDN = 'https://cdn.jsdelivr.net/npm/@imgly/background-removal-data@1.4.5/dist/';
 
 const CSS = `
 @import url('https://fonts.googleapis.com/css2?family=Unbounded:wght@500;700;900&family=Manrope:wght@400;500;600;700;800&display=swap');
@@ -264,7 +264,6 @@ export default function App() {
       const inputBlob = await (await fetch(src)).blob();
       const outBlob = await Promise.race([
         removeBackground(inputBlob, {
-          publicPath: IMGLY_CDN,
           model: 'medium',
           output: { format: 'image/png', quality: 1 },
           progress: (key, current, total) => { if (total) setBgProgress(Math.round((current / total) * 100)); }
@@ -338,7 +337,7 @@ export default function App() {
   const VIDEO = [{ icon: 'video', title: 'Обложка YouTube', act: () => { setFormat(FORMATS[2]); openEditor(); addText(); } }, { icon: 'video', title: 'Обложка Shorts', act: () => { setFormat(FORMATS[3]); openEditor(); addText(); } }];
   const APPS = [{ icon: 'image', title: 'Коллаж', act: TOOLS[4].act }, { icon: 'palette', title: 'Эффекты', act: TOOLS[5].act }, { icon: 'wand', title: 'Корректор', act: TOOLS[7].act }, { icon: 'grid', title: 'Фоны', act: () => { openEditor(); setTool('bg'); } }];
   const DRAWC = [{ icon: 'brush', title: 'Фристайл', act: TOOLS[6].act }, { icon: 'brush', title: 'Неон-кисть', act: () => { setBrushColor('#00c2d1'); setBrushSize(14); openEditor(); setTool('draw'); } }, { icon: 'brush', title: 'Скетч', act: () => { setBrushColor('#17121f'); setBrushSize(4); openEditor(); setTool('draw'); } }];
-   const selectedEl = elements.find(e => e.id === selectedId);
+    const selectedEl = elements.find(e => e.id === selectedId);
   const bgStyle = (b) => b.mode === 'gradient' ? { background: `linear-gradient(135deg,${b.from},${b.to})` } : { background: b.color };
 
   const renderHome = () => (
@@ -397,7 +396,7 @@ export default function App() {
       <button className="btn ghost" style={{ marginTop: 10 }} onClick={() => setAuthMode(authMode === 'in' ? 'up' : 'in')}>{authMode === 'in' ? 'Нет аккаунта? Создать' : 'Уже есть? Войти'}</button>
     </div></div>}
   </>);
-     const renderPanel = () => {
+    const renderPanel = () => {
     if (tool === 'draw' || tool === 'erase') return <div className="panel"><h4>{tool === 'draw' ? 'Кисть' : 'Ластик'}</h4>
       <div className="row"><span className="lbl">Цвет</span><input type="color" value={brushColor} onChange={e => setBrushColor(e.target.value)} /></div>
       <div className="row"><span className="lbl">Размер</span><input type="range" min="2" max="60" value={brushSize} onChange={e => setBrushSize(+e.target.value)} /></div>
